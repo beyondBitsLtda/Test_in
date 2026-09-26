@@ -1,0 +1,58 @@
+/* ============================================================================
+   estilo.css - a folha de estilos base das telas testadas
+   ============================================================================
+   Servida no lugar da folha de estilos da plataforma quando a pessoa nao
+   apontou a original (config "estilosBase"). E Bootstrap 3 - a base que a
+   plataforma usa - mais o visual dos componentes que o ambiente.js desenha.
+
+   Com a folha original apontada, ESTA nao e usada e a tela sai identica.
+============================================================================ */
+@import url("https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css");
+
+/* ---- avisos (toast) ---- */
+.testin-toasts {
+    position: fixed; top: 12px; right: 12px; z-index: 100000;
+    display: flex; flex-direction: column; gap: 8px; max-width: 380px;
+}
+.testin-toast {
+    padding: 10px 14px; border-radius: 4px; color: #FFFFFF; background: #213D75;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .25); font-size: 13px;
+}
+.testin-toast--success { background: #0B861D; }
+.testin-toast--warning { background: #FF6B05; color: #000000; }
+.testin-toast--danger  { background: #CC0F10; }
+
+/* ---- janela (modal) ---- */
+.testin-modal {
+    position: fixed; inset: 0; z-index: 99999; background: rgba(0, 0, 0, .45);
+    display: flex; align-items: center; justify-content: center;
+}
+.testin-modal__janela { background: #FFFFFF; border-radius: 6px; min-width: 320px; max-width: 640px; box-shadow: 0 12px 40px rgba(0,0,0,.3); }
+.testin-modal__titulo { padding: 12px 16px; font-weight: 700; border-bottom: 1px solid #EAE5DF; }
+.testin-modal__corpo  { padding: 16px; }
+.testin-modal__rodape { padding: 10px 16px; border-top: 1px solid #EAE5DF; text-align: right; }
+.testin-btn { border: 1px solid #B0B0B0; background: #FFFFFF; padding: 5px 12px; border-radius: 4px; cursor: pointer; }
+
+/* ---- carregando ---- */
+.testin-carregando {
+    position: fixed; inset: 0; z-index: 99998; background: rgba(255, 255, 255, .7);
+    display: flex; align-items: center; justify-content: center; font-weight: 600;
+}
+
+/* ---- campo de busca com lista (tags + sugestoes) ---- */
+.bootstrap-tagsinput {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-height: 34px;
+    padding: 3px 6px; border: 1px solid #B0B0B0; border-radius: 4px; background: #FFFFFF;
+}
+.bootstrap-tagsinput .tag { display: inline-block; padding: 3px 7px; border-radius: 3px; background: #2362D3; color: #FFFFFF; font-size: 12px; }
+.bootstrap-tagsinput .tag [data-role="remove"] { cursor: pointer; margin-left: 4px; }
+.twitter-typeahead { position: relative; flex: 1 1 160px; }
+.twitter-typeahead .tt-input { width: 100%; border: 0; outline: 0; padding: 4px; }
+.tt-menu {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 1000; margin-top: 2px;
+    background: #FFFFFF; border: 1px solid #B0B0B0; border-radius: 4px; max-height: 260px; overflow: auto;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .15);
+}
+.tt-suggestion { padding: 6px 10px; cursor: pointer; }
+.tt-suggestion:hover { background: #EAE5DF; }
+.tt-suggestion.tt-message { color: #555555; cursor: default; font-style: italic; }

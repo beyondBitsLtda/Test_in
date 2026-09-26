@@ -1,0 +1,15 @@
+{
+  "name": "test_in",
+  "version": "1.0.0",
+  "description": "Test_in: roda testes de tela automaticos nas aplicacoes dos seus repositorios, direto no computador, com os dados simulados.",
+  "main": "app.js",
+  "scripts": {
+    "iniciar": "node app.js",
+    "testar": "node teste/teste-test_in.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "private": true,
+  "dependencies": {}
+}

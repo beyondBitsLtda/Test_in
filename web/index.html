@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Test_in</title>
+    <!-- O ícone é o glifo da marca: um cartão de embarque com o visto de
+         aprovado. Data URI: a política de imagens da interface aceita. -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23000000'/%3E%3Cpath d='M6 9h14v4a3 3 0 0 0 0 6v4H6z' fill='%23FF6B05'/%3E%3Cpath d='M22 9h4v14h-4v-4a3 3 0 0 0 0-6z' fill='%23EAE5DF'/%3E%3Cpath d='M9.5 16l2.5 2.5 4.5-5' fill='none' stroke='%23000000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+    <header class="topo">
+        <div class="topo__marca">
+            <!-- O glifo: um cartão de embarque (laranja) com o canhoto (areia)
+                 e o visto de aprovado. -->
+            <svg class="topo__glifo" viewBox="0 0 32 32" aria-hidden="true">
+                <path d="M3 8h19v4.5a3.5 3.5 0 0 0 0 7V24H3z" fill="#FF6B05"/>
+                <path d="M24 8h5v16h-5v-4.5a3.5 3.5 0 0 0 0-7z" fill="#EAE5DF"/>
+                <path d="M7.5 16l3 3 5.5-6" fill="none" stroke="#000000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="topo__nome">Test<span class="topo__in">_in</span></span>
+            <span class="topo__lema">check-in dos seus testes</span>
+        </div>
+        <nav class="topo__nav" aria-label="Seções">
+            <button type="button" class="topo__aba topo__aba--ativa" data-ir="repositorios">Aplicações</button>
+            <button type="button" class="topo__aba" data-ir="pastas">Pastas</button>
+        </nav>
+        <div class="topo__fim">
+            <div class="topo__estado" data-estado></div>
+            <button type="button" class="tema" data-acao="tema" title="Tema">◐</button>
+        </div>
+    </header>
+
+    <main class="conteudo">
+        <!-- APLICAÇÕES: o que o Test_in achou nas pastas. Cada aplicação é um
+             cartão de embarque; o canhoto traz o código da arquitetura. -->
+        <section class="tela tela--ativa" data-tela="repositorios">
+            <div class="faixa">
+                <div>
+                    <div class="faixa__rotulo">Partidas</div>
+                    <h1 class="faixa__titulo">Aplicações encontradas</h1>
+                    <p class="faixa__texto">Escolha a aplicação que vai testar. A arquitetura de cada uma é reconhecida pela estrutura da pasta.</p>
+                </div>
+                <div class="faixa__acoes">
+                    <ul class="codigos" aria-label="Códigos de arquitetura">
+                        <li><b>FLX</b> tela de fluxo</li>
+                        <li><b>MOD</b> módulo de página</li>
+                        <li><b>WEB</b> aplicação web</li>
+                    </ul>
+                    <button type="button" class="botao" data-acao="atualizar">↻ Atualizar</button>
+                </div>
+            </div>
+            <div data-lista-repos></div>
+        </section>
+
+        <!-- PASTAS: onde procurar -->
+        <section class="tela" data-tela="pastas">
+            <div class="faixa">
+                <div>
+                    <div class="faixa__rotulo">Configuração</div>
+                    <h1 class="faixa__titulo">Pastas de repositórios</h1>
+                    <p class="faixa__texto">Cole o caminho da pasta que junta os seus repositórios (ou de um repositório só), como aparece no Explorer.</p>
+                </div>
+            </div>
+            <div class="painel">
+                <div class="linha">
+                    <input type="text" class="entrada entrada--larga" data-nova-pasta placeholder="C:\repositorios" spellcheck="false">
+                    <button type="button" class="botao botao--principal" data-acao="adicionar-pasta">Adicionar</button>
+                </div>
+                <ul class="lista-pastas" data-lista-pastas></ul>
+                <div class="separador"></div>
+                <label class="rotulo" for="estilos">Folha de estilos original da plataforma (opcional)</label>
+                <p class="ajuda">Com ela, as telas saem visualmente idênticas às de produção. Sem ela, vale a emulação (Bootstrap 3 + componentes do Test_in).</p>
+                <div class="linha">
+                    <input type="text" id="estilos" class="entrada entrada--larga" data-estilos placeholder="C:\bibliotecas\estilos (opcional)" spellcheck="false">
+                    <button type="button" class="botao" data-acao="salvar-estilos">Salvar</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- O EMBARQUE: uma aplicação aberta -->
+        <section class="tela" data-tela="testin">
+            <div class="faixa">
+                <div>
+                    <button type="button" class="voltar" data-ir="repositorios">← Aplicações</button>
+                    <div class="faixa__rotulo">Embarque</div>
+                    <h1 class="faixa__titulo" data-app-titulo></h1>
+                    <p class="faixa__texto" data-app-detalhe></p>
+                </div>
+            </div>
+
+            <div class="area">
+                <aside class="area__lado">
+                    <div class="painel">
+                        <div class="painel__titulo">Script de teste</div>
+                        <select class="entrada entrada--larga" data-scripts></select>
+                        <div class="linha">
+                            <button type="button" class="botao" data-acao="abrir-arquivo">Abrir arquivo…</button>
+                            <input type="file" accept=".json,application/json" data-arquivo hidden>
+                        </div>
+                        <div class="instrucoes" data-instrucoes hidden></div>
+                        <div class="simulacoes" data-simulacoes></div>
+                    </div>
+                    <div class="painel">
+                        <div class="painel__titulo">Casos <span class="contador" data-qtd-casos></span></div>
+                        <div class="lista-casos" data-lista-casos>
+                            <p class="ajuda">Escolha um script acima.</p>
+                        </div>
+                        <label class="marcar"><input type="checkbox" data-tela-cheia> Rodar em tela cheia</label>
+                        <label class="marcar">Velocidade
+                            <select class="entrada entrada--curta" data-velocidade title="Em câmera lenta cada passo aparece numa legenda sobre a tela, o elemento é destacado antes da ação e o texto é digitado letra a letra. O resultado é o mesmo da velocidade normal.">
+                                <option value="0">Normal</option>
+                                <option value="1200">Câmera lenta</option>
+                                <option value="2500">Bem devagar</option>
+                                <option value="passo">Passo a passo (eu clico em Executar)</option>
+                            </select>
+                        </label>
+                        <div class="linha">
+                            <button type="button" class="botao botao--principal" data-acao="rodar" disabled>▶ Rodar marcados</button>
+                            <button type="button" class="botao botao--parar" data-acao="parar" hidden>■ Parar</button>
+                        </div>
+                    </div>
+                </aside>
+
+                <div class="area__centro">
+                    <div class="palco" data-palco>
+                        <div class="palco__barra">
+                            <span class="palco__andamento" data-andamento>Pronto para rodar.</span>
+                            <button type="button" class="botao botao--mini" data-acao="tela-cheia">⛶ Tela cheia</button>
+                        </div>
+                        <div class="palco__progresso"><div class="palco__cheio" data-barra></div></div>
+                        <div class="passo" data-passo hidden></div>
+                        <div class="palco__quadro">
+                            <iframe class="palco__tela" data-tela-teste title="Aplicação em teste" src="about:blank"></iframe>
+                            <ol class="palco__log" data-log></ol>
+                        </div>
+                    </div>
+
+                    <div class="resultado" data-resultado hidden></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="/motor.js"></script>
+    <script src="/relatorio.js"></script>
+    <script src="/app.js"></script>
+</body>
+</html>

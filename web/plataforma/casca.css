@@ -1,0 +1,23 @@
+/* A casca da tela de fluxo: cabecalho com o botao Enviar e a tela num quadro
+   ocupando o resto - o que a plataforma poe em volta. */
+html, body.casca { margin: 0; height: 100%; }
+body.casca {
+    display: flex; flex-direction: column; background: #EAE5DF;
+    font-family: 'Barlow', 'Inter', system-ui, -apple-system, sans-serif;
+}
+.casca__topo {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 18px; background: #FFFFFF; border-bottom: 1px solid #B0B0B0;
+}
+.casca__rotulo { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #555555; }
+.casca__titulo { margin: 2px 0 0; font-size: 18px; color: #000000; }
+.casca__enviar {
+    border: 0; border-radius: 4px; padding: 8px 22px; font-size: 14px; font-weight: 600;
+    background: #2362D3; color: #FFFFFF; cursor: pointer;
+}
+.casca__enviar:disabled { background: #B0B0B0; cursor: not-allowed; }
+.casca__aviso { padding: 8px 18px; font-size: 13px; }
+.casca__aviso--ok   { background: rgba(11, 134, 29, .12); color: #0B861D; }
+.casca__aviso--erro { background: rgba(204, 15, 16, .10); color: #CC0F10; }
+.casca__aviso--info { background: #FFFFFF; color: #000000; }
+.casca__tela { flex: 1 1 auto; width: 100%; border: 0; background: #FFFFFF; }
