@@ -777,8 +777,20 @@
         }).catch(function () { /* sem resposta: segue */ });
     }
 
+    /* A abertura sai quando as aplicacoes chegam - mas fica ao menos o tempo
+       da entrada do logo, para nao piscar numa maquina rapida. */
+    var ABERTURA_MIN = 1100;
+    function fecharAbertura() {
+        var a = $('[data-abertura]');
+        if (!a) return;
+        setTimeout(function () {
+            a.classList.add('abertura--saindo');
+            setTimeout(function () { if (a.parentNode) a.parentNode.removeChild(a); }, 700);
+        }, Math.max(0, ABERTURA_MIN - performance.now()));
+    }
+
     carregarEstado().then(carregarRepos).then(function () {
         if (!estado.pastas.length) ir('pastas');
         conferirVersao();
-    });
+    }).then(fecharAbertura, fecharAbertura);
 }());

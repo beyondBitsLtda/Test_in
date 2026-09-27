@@ -11,7 +11,7 @@ node app.js
 ```
 
 ```
-Test_in 1.0.0
+Test_in 1.1.0
 pastas configuradas: 1
 
 Abra no navegador:

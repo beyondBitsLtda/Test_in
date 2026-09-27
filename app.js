@@ -24,7 +24,7 @@ var child = require('child_process');
 var servidor = require('./src/servidor');
 var config = require('./src/config');
 
-var VERSAO = '1.0.0';
+var VERSAO = '1.1.0';
 var PORTA_PADRAO = 7041;
 
 function lerArgumentos(argv) {

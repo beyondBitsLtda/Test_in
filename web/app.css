@@ -435,3 +435,88 @@ table.campos td, table.campos th { text-align: left; padding: 4px 6px; border-bo
     .app, .botao, .palco__cheio { transition: none; }
     .app:hover { transform: none; }
 }
+
+/* ============================================================================
+   A ABERTURA - o logo sobre o preto do "aeroporto" enquanto a interface
+   carrega. O logo.png e so a tinta (fundo transparente) e entra como
+   MASCARA: a cor vem do CSS - areia sobre o preto (contraste ~16:1), com
+   um brilho que atravessa. O app.js poe --saindo quando os dados chegam;
+   se ele nao rodar, a animacao "abertura-some" tira a tela aos 12 s.
+============================================================================ */
+.abertura {
+    position: fixed; inset: 0; z-index: 3000;
+    display: grid; place-items: center;
+    background: #000000; color: #EAE5DF;
+    font-family: var(--fonte);
+    transition: opacity .6s ease, visibility 0s linear .6s;
+    animation: abertura-some .6s ease 12s forwards;
+}
+.abertura--saindo { opacity: 0; visibility: hidden; pointer-events: none; animation: none; }
+.abertura__brilho {
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+        radial-gradient(38vmax 30vmax at 50% 44%, rgba(234, 229, 223, .09), transparent 70%),
+        radial-gradient(22vmax 16vmax at 50% 70%, rgba(255, 107, 5, .08), transparent 70%);
+    animation: abertura-respira 4.8s ease-in-out infinite;
+}
+.abertura__centro {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center; gap: 28px;
+    padding: 0 16px;
+    transition: transform .6s cubic-bezier(.2, .7, .2, 1);
+}
+.abertura--saindo .abertura__centro { transform: scale(1.04); }
+.abertura__logo {
+    width: clamp(180px, 34vmin, 320px);
+    aspect-ratio: 640 / 646;
+    -webkit-mask: url(/logo.png) center / contain no-repeat;
+            mask: url(/logo.png) center / contain no-repeat;
+    background: linear-gradient(110deg, #EAE5DF 0 42%, #FFFFFF 50%, #EAE5DF 58% 100%);
+    background-size: 260% 100%;
+    background-position: 100% 0;
+    animation: abertura-entra .9s cubic-bezier(.2, .7, .2, 1) both,
+               abertura-reluz 2.8s ease-in-out .9s infinite;
+}
+.abertura__barra {
+    position: relative; overflow: hidden;
+    width: 168px; height: 3px; border-radius: 3px;
+    background: rgba(234, 229, 223, .14);
+    animation: abertura-aparece .6s ease .35s both;
+}
+.abertura__barra span {
+    position: absolute; inset: 0 auto 0 0; width: 38%;
+    border-radius: inherit; background: #FF6B05;
+    animation: abertura-corre 1.4s cubic-bezier(.45, 0, .25, 1) infinite;
+}
+.abertura__lema {
+    margin: -12px 0 0;
+    font-size: 12px; font-weight: 500; letter-spacing: .3em; text-transform: uppercase;
+    color: rgba(234, 229, 223, .62);
+    animation: abertura-aparece .6s ease .5s both;
+}
+.abertura__leitor {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+@keyframes abertura-entra {
+    from { opacity: 0; transform: translateY(14px) scale(.96); filter: blur(8px); }
+    to   { opacity: 1; transform: none; filter: none; }
+}
+@keyframes abertura-reluz {
+    0%        { background-position: 100% 0; }
+    60%, 100% { background-position: 0 0; }
+}
+@keyframes abertura-corre {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(270%); }
+}
+@keyframes abertura-aparece { from { opacity: 0; } to { opacity: 1; } }
+@keyframes abertura-respira { 50% { opacity: .55; } }
+@keyframes abertura-some { to { opacity: 0; visibility: hidden; pointer-events: none; } }
+@media (prefers-reduced-motion: reduce) {
+    .abertura__logo { animation: abertura-aparece .4s ease both; }
+    .abertura__brilho { animation: none; }
+    .abertura__barra span { animation: none; width: 100%; opacity: .7; }
+    .abertura__centro { transition: none; }
+    .abertura--saindo .abertura__centro { transform: none; }
+}

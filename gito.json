@@ -1,0 +1,145 @@
+{
+  "$gito": 1,
+  "aplicacao": {
+    "nome": "Test_in",
+    "codigo": "TESTIN",
+    "descricao": "Aplicação local que roda testes de tela automáticos nas aplicações dos repositórios de quem desenvolve, com os dados simulados, direto no computador e sem servidor.",
+    "tipo": "Aplicação local",
+    "situacao": "em produção",
+    "responsavel": "Brayan Rodrigues",
+    "equipe": ""
+  },
+  "versao": "1.1.0",
+  "atualizadoEm": "2026-09-26",
+  "compilacao": {
+    "numero": 2,
+    "data": "2026-09-26",
+    "artefato": ""
+  },
+  "historico": [
+    {
+      "versao": "1.1.0",
+      "data": "2026-09-26",
+      "branch": "main",
+      "tipo": "funcionalidade",
+      "resumo": "Tela de abertura com o logo do Test_in enquanto a interface carrega as pastas e as aplicações.",
+      "itens": [
+        "Ao abrir, o logo aparece sobre o fundo preto, com brilho, barra de progresso laranja e o lema \"check-in dos seus testes\".",
+        "A tela some sozinha quando as aplicações terminam de carregar, e fica ao menos 1,1 s para não piscar.",
+        "Se a interface não carregar, a tela de abertura sai sozinha em 12 s: ninguém fica preso nela.",
+        "Respeita a opção \"reduzir movimento\" do sistema e é anunciada aos leitores de tela.",
+        "Novo arquivo web/logo.png (o logo recortado, com fundo transparente), servido pelo endereço /logo.png.",
+        "Ficha técnica preenchida e versão alinhada à que a aplicação declara (1.0.0 em app.js e package.json, agora 1.1.0)."
+      ],
+      "issues": []
+    },
+    {
+      "versao": "0.1.0",
+      "data": "2026-09-26",
+      "branch": "main",
+      "tipo": "funcionalidade",
+      "resumo": "Ficha criada no Gito.",
+      "itens": [
+        "Primeiro registro de versão e ficha técnica da aplicação."
+      ],
+      "issues": []
+    }
+  ],
+  "ficha": {
+    "escopo": {
+      "objetivo": "Testar as telas das aplicações dos repositórios sem publicar nada e sem servidor: a pessoa aponta as pastas, escolhe a aplicação e o script de teste (*.testes.json), e o Test_in abre a tela, executa cada passo e devolve o resultado na tela e num relatório HTML.",
+      "inclui": [
+        "Reconhecer sozinho a arquitetura de cada aplicação pela estrutura da pasta: tela de fluxo (forms/<número> - <nome>/), módulo de página (application.info + view.ftl) e aplicação web (pasta com index.html).",
+        "Achar os scripts de teste (*.testes.json) dos repositórios e ligá-los à aplicação pelo alvo, mesmo quando moram em outro repositório.",
+        "Executar os passos do script: abrir, preencher, selecionar, marcar, clicar, enviar, esperar e conferir (texto, campo, visível, oculto, bloqueado, alerta, console, fonte de dados e chamada).",
+        "Simular as consultas de dados (DatasetFactory e o serviço REST de dados) pelas regras do bloco simulacoes do script, inclusive falhas, sem mudar o código da aplicação.",
+        "Emular a plataforma que a tela espera: bibliotecas (jQuery, jQuery UI, Mustache), biblioteca de componentes, folha de estilos, WebSocket, usuário, etapa do fluxo e os eventos de servidor da tela (displayFields, enableFields, validateForm) numa sandbox.",
+        "Mostrar o andamento ao vivo, em tela cheia, em câmera lenta ou passo a passo.",
+        "Gerar o relatório HTML autocontido (abre sem internet) e o resultado em .json.",
+        "Herdar, na primeira abertura, as pastas e a folha de estilos já cadastradas na Bancada de Testes."
+      ],
+      "naoInclui": [
+        "Não roda os scripts de fluxo que a plataforma executa no servidor depois do envio: o Test_in simula o envio e para ali.",
+        "Não troca de usuário no meio de um caso (aprovação em cadeia fica de fora).",
+        "Não emula componentes muito específicos da biblioteca original: o que falta avisa no console e não quebra a tela.",
+        "Não acessa servidores, bancos nem dados reais: toda consulta é respondida pelas simulações do script.",
+        "Não é acessível pela rede: escuta só em 127.0.0.1, para a pessoa que o abriu.",
+        "Não permite passo com código livre: o script de teste usa um vocabulário fechado de ações."
+      ]
+    },
+    "stack": [
+      "Node.js 18 ou mais novo, sem nenhuma dependência npm (só módulos nativos: http, fs, path, os, crypto, vm, child_process e o fetch global)",
+      "JavaScript no navegador sem framework, HTML e CSS (tema claro e escuro)",
+      "Motor de testes web/motor.js: cópia idêntica do motor do painel de testes da plataforma (DevTools Kit)",
+      "Navegador Edge ou Chrome",
+      "Scripts .cmd do Windows para abrir (abrir-test_in.cmd) e criar o atalho na Área de Trabalho (criar-atalho.cmd)",
+      "Bibliotecas entregues às telas testadas: jQuery 3.7.1, jQuery UI 1.13.2 e Mustache 2.3.2 (servidas pelo Test_in) e Bootstrap 3.4.1 (importado da CDN pela folha de estilos emulada)",
+      "Testes: teste/teste-test_in.js (rápido, sem navegador) e teste/e2e-navegador.js (Node 22 ou mais novo, navegador sem janela pelo protocolo de depuração)"
+    ],
+    "arquitetura": {
+      "resumo": "Um servidor Node (app.js + src/) sobe em 127.0.0.1:7041 e entrega a interface (web/) e a aplicação testada no MESMO endereço; é isso que deixa o motor, rodando no navegador, abrir a tela num quadro (iframe), preencher, clicar e conferir. src/descobrir.js reconhece as aplicações e os scripts nas pastas cadastradas (só leitura); src/emulacao.js renderiza a casca da tela de fluxo e o modelo do módulo de página, roda os eventos de servidor numa sandbox e responde as consultas de dados pelas simulações; web/plataforma/ambiente.js é injetado antes dos scripts da tela e cria os objetos globais que ela espera. Segurança: escuta só em 127.0.0.1, token por instalação num cookie HttpOnly, Host e Origin conferidos e caminhos presos às pastas cadastradas. Não há banco de dados: a configuração de cada pessoa (pastas, token e folha de estilos) fica em %APPDATA%\\test_in\\config.json, jQuery, jQuery UI e Mustache baixados da CDN ficam em cache em %APPDATA%\\test_in\\cache e, opcionalmente, na pasta vendor/ (para rodar sem internet); o Bootstrap 3 da folha de estilos emulada vem sempre da CDN, a menos que a pessoa aponte a folha de estilos original. Os relatórios são baixados pela pessoa; nada mais é gravado.",
+      "diagramas": [
+        {
+          "titulo": "Como uma rodada de teste acontece",
+          "mermaid": "flowchart LR\n  P[Pessoa] -->|abrir-test_in.cmd| S[Servidor Node<br/>127.0.0.1:7041]\n  S -->|interface| UI[Interface<br/>web/index.html]\n  UI -->|script .testes.json| M[Motor<br/>web/motor.js]\n  M -->|abre num quadro| T[Tela testada<br/>+ ambiente.js]\n  T -->|bibliotecas e dados| S\n  S -->|lê só nas pastas cadastradas| R[(Repositórios<br/>da pessoa)]\n  S -->|simulações do script| T\n  S -.->|1ª vez, depois cache| CDN[cdnjs]\n  M -->|resultado| UI\n  UI -->|download| REL[Relatório HTML<br/>e .json]"
+        }
+      ]
+    },
+    "hospedagem": [
+      {
+        "ambiente": "Estação de trabalho (local)",
+        "onde": "No computador de cada pessoa (Windows), com Node.js 18 ou mais novo. Abre pelo abrir-test_in.cmd ou pelo atalho da Área de Trabalho; fechar a janela do terminal encerra. O endereço exige o token desta instalação, que o terminal mostra ao abrir.",
+        "url": "http://127.0.0.1:7041/",
+        "verificar": false
+      }
+    ],
+    "bancoDeDados": [],
+    "integracoes": [
+      {
+        "nome": "Painel de testes da plataforma (DevTools Kit)",
+        "descricao": "O motor que executa os passos é o mesmo arquivo do painel (wcm/widget/devToolsKit/src/main/webapp/resources/js/motorTestes.js), copiado para web/motor.js com node sincronizar-motor.js. O mesmo script .testes.json roda nos dois lugares, e o teste falha se as cópias divergirem. O painel fica em outro repositório: o sincronizar-motor.js e essa comparação só funcionam com o Test_in dentro do repositório completo (estacao/test_in); neste repositório avulso, o teste pula a comparação e a cópia é feita à mão.",
+        "url": ""
+      },
+      {
+        "nome": "Plataforma Fluig (emulada)",
+        "descricao": "As telas testadas foram escritas para a plataforma Fluig. O Test_in responde nos endereços que elas pedem (/portal/resources/..., /webdesk/vcXMLRPC.js, /api/public/ecm/dataset/...) sem se conectar a nenhum servidor da plataforma.",
+        "url": ""
+      },
+      {
+        "nome": "Bancada de Testes",
+        "descricao": "Antecessora do Test_in (estacao/bancada-testes, porta 7031). Na primeira abertura, as pastas e a folha de estilos vêm de %APPDATA%\\bancada-testes\\config.json; o token não. As duas rodam ao mesmo tempo.",
+        "url": ""
+      },
+      {
+        "nome": "cdnjs (Cloudflare)",
+        "descricao": "De onde vêm, na primeira vez, jQuery, jQuery UI e Mustache para as telas testadas; depois ficam em cache local, e a pasta vendor/ tem prioridade para rodar sem internet. O Bootstrap 3 da folha de estilos emulada é carregado direto da CDN pelo navegador (sem cache do Test_in).",
+        "url": "https://cdnjs.cloudflare.com"
+      },
+      {
+        "nome": "Google Fonts",
+        "descricao": "A fonte Barlow da interface. Sem internet, a interface usa a fonte do sistema.",
+        "url": "https://fonts.google.com/specimen/Barlow"
+      }
+    ],
+    "links": [
+      {
+        "titulo": "Repositório",
+        "url": "https://github.com/beyondBitsLtda/Test_in"
+      },
+      {
+        "titulo": "Manual de uso (README)",
+        "url": "https://github.com/beyondBitsLtda/Test_in/blob/main/README.md"
+      },
+      {
+        "titulo": "Contrato de versionamento (GITO.md)",
+        "url": "https://github.com/beyondBitsLtda/Test_in/blob/main/GITO.md"
+      }
+    ],
+    "contatos": [
+      {
+        "papel": "Responsável técnico",
+        "nome": "Brayan Rodrigues"
+      }
+    ]
+  }
+}

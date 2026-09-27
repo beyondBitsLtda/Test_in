@@ -366,7 +366,7 @@ function criar(token) {
             }
             return servirArquivo(res, path.join(WEB, 'index.html'), { 'Content-Security-Policy': CSP_INTERFACE });
         }
-        if (/^\/(app\.js|app\.css|motor\.js|relatorio\.js)$/.test(p)) {
+        if (/^\/(app\.js|app\.css|motor\.js|relatorio\.js|logo\.png)$/.test(p)) {
             return servirArquivo(res, path.join(WEB, p.substring(1)), { 'Content-Security-Policy': CSP_INTERFACE });
         }
         if (/^\/__testin\/plataforma\/[\w.-]+\.(js|css)$/.test(p)) {

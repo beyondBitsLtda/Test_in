@@ -10,8 +10,22 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="/app.css">
+    <link rel="preload" href="/logo.png" as="image">
 </head>
 <body>
+    <!-- A abertura: o logo sobre o preto do "aeroporto" enquanto a interface
+         carrega as pastas e as aplicacoes. O app.js a fecha; se ele nao
+         chegar a rodar, o CSS a tira sozinho depois de alguns segundos. -->
+    <div class="abertura" data-abertura role="status" aria-live="polite">
+        <div class="abertura__brilho" aria-hidden="true"></div>
+        <div class="abertura__centro">
+            <div class="abertura__logo" role="img" aria-label="Test_in"></div>
+            <div class="abertura__barra" aria-hidden="true"><span></span></div>
+            <p class="abertura__lema">check-in dos seus testes</p>
+            <span class="abertura__leitor">Carregando o Test_in…</span>
+        </div>
+    </div>
+
     <header class="topo">
         <div class="topo__marca">
             <!-- O glifo: um cartão de embarque (laranja) com o canhoto (areia)
