@@ -1,0 +1,23 @@
+{
+  "id": "TESTIN-0001",
+  "titulo": "Organização visual das aplicações.",
+  "descricao": "Hoje o layout está muito desorganizado, ficando dificil de localizar as aplicações que se dejesa, em especial em casos d emais de um pasta raiz usadas para idnetificar repositórios.",
+  "tipo": "melhoria",
+  "prioridade": "media",
+  "status": "aberta",
+  "responsavel": "Brayan Rodrigues",
+  "prazo": "2026-10-09",
+  "versaoAlvo": "0.1.0",
+  "criadaEm": "2026-09-27T05:43:14.408Z",
+  "criadaPor": "Brayan Rodrigues <brayan.rodrigues@delp.com.br>",
+  "atualizadaEm": "2026-09-27T05:43:14.408Z",
+  "comentarios": [],
+  "evidencias": [],
+  "historico": [
+    {
+      "quando": "2026-09-27T05:43:14.408Z",
+      "autor": "Brayan Rodrigues <brayan.rodrigues@delp.com.br>",
+      "mudanca": "issue criada"
+    }
+  ]
+}
