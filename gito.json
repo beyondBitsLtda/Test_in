@@ -9,14 +9,36 @@
     "responsavel": "Brayan Rodrigues",
     "equipe": ""
   },
-  "versao": "1.1.0",
-  "atualizadoEm": "2026-09-26",
+  "versao": "1.2.0",
+  "atualizadoEm": "2026-09-27",
   "compilacao": {
-    "numero": 2,
-    "data": "2026-09-26",
+    "numero": 3,
+    "data": "2026-09-27",
     "artefato": ""
   },
   "historico": [
+    {
+      "versao": "1.2.0",
+      "data": "2026-09-27",
+      "branch": "main",
+      "tipo": "melhoria",
+      "resumo": "A tela de Aplicações ficou organizada por pasta cadastrada e repositório, com busca, filtros e vista em lista, para achar a aplicação rápido mesmo com várias pastas.",
+      "itens": [
+        "Com mais de uma pasta cadastrada, cada uma vira uma seção própria (faixa PASTA), na ordem em que foi cadastrada.",
+        "Pastas e repositórios recolhem e expandem pelo cabeçalho, ou todos de uma vez com Recolher tudo / Expandir tudo.",
+        "Busca por nome, repositório ou caminho, sem ligar para acentos: tecla / para buscar, Enter abre a primeira aplicação encontrada e Esc limpa.",
+        "Filtros por arquitetura (FLX, MOD, WEB), com a contagem de cada uma, e por Só com script de teste.",
+        "Cada pasta e cada repositório mostram quantas aplicações aparecem (\"2 de 14\"), e a barra de busca fica fixa sob o topo ao rolar.",
+        "Nova vista em lista compacta, uma aplicação por linha, além dos cartões.",
+        "As aplicações de cada repositório aparecem em ordem alfabética; o repositório mostra o caminho relativo à pasta, e o caminho completo aparece ao passar o mouse.",
+        "Repositórios que só têm scripts de teste ficam numa linha no fim da seção, sem ocupar espaço de cartão.",
+        "A aplicação na raiz do repositório mostra \"raiz do repositório\" em vez de um ponto solto.",
+        "O que foi recolhido, os filtros e a vista ficam guardados no navegador."
+      ],
+      "issues": [
+        "TESTIN-0001"
+      ]
+    },
     {
       "versao": "1.1.0",
       "data": "2026-09-26",
@@ -51,6 +73,7 @@
       "inclui": [
         "Reconhecer sozinho a arquitetura de cada aplicação pela estrutura da pasta: tela de fluxo (forms/<número> - <nome>/), módulo de página (application.info + view.ftl) e aplicação web (pasta com index.html).",
         "Achar os scripts de teste (*.testes.json) dos repositórios e ligá-los à aplicação pelo alvo, mesmo quando moram em outro repositório.",
+        "Organizar as aplicações encontradas por pasta cadastrada e repositório, com busca, filtros por arquitetura e por script de teste, grupos recolhíveis e vista em cartões ou em lista.",
         "Executar os passos do script: abrir, preencher, selecionar, marcar, clicar, enviar, esperar e conferir (texto, campo, visível, oculto, bloqueado, alerta, console, fonte de dados e chamada).",
         "Simular as consultas de dados (DatasetFactory e o serviço REST de dados) pelas regras do bloco simulacoes do script, inclusive falhas, sem mudar o código da aplicação.",
         "Emular a plataforma que a tela espera: bibliotecas (jQuery, jQuery UI, Mustache), biblioteca de componentes, folha de estilos, WebSocket, usuário, etapa do fluxo e os eventos de servidor da tela (displayFields, enableFields, validateForm) numa sandbox.",

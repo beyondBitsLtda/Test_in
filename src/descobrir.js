@@ -76,8 +76,11 @@ function repositorios(pastas) {
             if (!apps.length && !(ehRepo && c !== raiz)) return;
             if (c === raiz && !ehRepo && !apps.some(function (a) { return a.rel.split('/').length <= 3; })) return;
             vistos[k] = true;
+            /* raiz: a pasta CADASTRADA de onde o repositorio veio - a
+               interface agrupa por ela quando ha mais de uma. */
             achados.push({
                 id: idDe(c), nome: path.basename(c), caminho: path.resolve(c),
+                raiz: path.resolve(raiz), relRaiz: path.relative(raiz, c).split(path.sep).join('/') || '.',
                 versionado: ehRepo, aplicacoes: apps, scripts: scriptsDeTeste(c, apps)
             });
         });

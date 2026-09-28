@@ -4,20 +4,51 @@
   "descricao": "Hoje o layout está muito desorganizado, ficando dificil de localizar as aplicações que se dejesa, em especial em casos d emais de um pasta raiz usadas para idnetificar repositórios.",
   "tipo": "melhoria",
   "prioridade": "media",
-  "status": "aberta",
+  "status": "em-revisao",
   "responsavel": "Brayan Rodrigues",
   "prazo": "2026-10-09",
   "versaoAlvo": "0.1.0",
   "criadaEm": "2026-09-27T05:43:14.408Z",
   "criadaPor": "Brayan Rodrigues <brayan.rodrigues@delp.com.br>",
-  "atualizadaEm": "2026-09-27T05:43:14.408Z",
-  "comentarios": [],
+  "atualizadaEm": "2026-09-28T01:15:54.305Z",
+  "comentarios": [
+    {
+      "quando": "2026-09-28T01:09:59.924Z",
+      "autor": "Brayan Rodrigues (via Claude)",
+      "texto": "Vou reorganizar a tela de Aplicações: agrupar por pasta raiz (cada pasta cadastrada vira uma seção recolhível), repositórios recolhíveis com o caminho relativo à pasta, busca por nome/caminho, filtro por arquitetura (FLX/MOD/WEB) e por \"com script de teste\", contagem do que aparece e uma vista em lista compacta além dos cartões."
+    },
+    {
+      "quando": "2026-09-28T01:15:54.305Z",
+      "autor": "Brayan Rodrigues (via Claude)",
+      "texto": "Resolvido na versão 1.2.0 (main). A tela de Aplicações agora agrupa por pasta cadastrada (uma seção por pasta, recolhível) e por repositório (recolhível, com o caminho relativo à pasta). Entraram a busca (tecla /, sem acentos, Enter abre a primeira, Esc limpa), os filtros FLX/MOD/WEB com contagem e \"Só com script de teste\", a contagem por grupo (\"2 de 14\"), a barra de busca fixa ao rolar, a vista em lista compacta e o Recolher/Expandir tudo. Preferências ficam no navegador. Conferido com as 2 pastas e 45 aplicações reais, em desktop e celular, sem erros no console. Falta a conferência de uma pessoa para concluir."
+    }
+  ],
   "evidencias": [],
   "historico": [
     {
       "quando": "2026-09-27T05:43:14.408Z",
       "autor": "Brayan Rodrigues <brayan.rodrigues@delp.com.br>",
       "mudanca": "issue criada"
+    },
+    {
+      "quando": "2026-09-27T23:18:49.321Z",
+      "autor": "Brayan Rodrigues <brayan.rodrigues@delp.com.br>",
+      "mudanca": "situação: aberta → em-andamento"
+    },
+    {
+      "quando": "2026-09-28T01:09:59.924Z",
+      "autor": "Brayan Rodrigues (via Claude)",
+      "mudanca": "comentário: plano de trabalho"
+    },
+    {
+      "quando": "2026-09-28T01:15:54.305Z",
+      "autor": "Brayan Rodrigues (via Claude)",
+      "mudanca": "situação: em-andamento → em-revisao"
+    },
+    {
+      "quando": "2026-09-28T01:15:54.305Z",
+      "autor": "Brayan Rodrigues (via Claude)",
+      "mudanca": "comentário: resolução na versão 1.2.0"
     }
   ]
 }
