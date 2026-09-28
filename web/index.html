@@ -67,7 +67,30 @@
                     <button type="button" class="botao" data-acao="atualizar">↻ Atualizar</button>
                 </div>
             </div>
-            <div data-lista-repos></div>
+            <!-- A barra de busca: fica presa sob o topo enquanto a lista rola. -->
+            <div class="filtros" data-filtros hidden>
+                <label class="filtros__busca">
+                    <span class="filtros__lupa" aria-hidden="true">⌕</span>
+                    <input type="search" class="entrada" data-busca placeholder="Buscar aplicação, repositório ou caminho…" aria-label="Buscar aplicação" autocomplete="off" spellcheck="false">
+                    <kbd class="filtros__tecla" aria-hidden="true">/</kbd>
+                </label>
+                <div class="filtros__tipos" role="group" aria-label="Arquitetura">
+                    <button type="button" class="filtro filtro--ativo" data-tipo="" aria-pressed="true">Todas <span data-conta=""></span></button>
+                    <button type="button" class="filtro" data-tipo="fluxo" aria-pressed="false"><b>FLX</b> <span data-conta="fluxo"></span></button>
+                    <button type="button" class="filtro" data-tipo="modulo" aria-pressed="false"><b>MOD</b> <span data-conta="modulo"></span></button>
+                    <button type="button" class="filtro" data-tipo="web" aria-pressed="false"><b>WEB</b> <span data-conta="web"></span></button>
+                </div>
+                <label class="filtros__opcao"><input type="checkbox" data-so-scripts> Só com script de teste</label>
+                <div class="filtros__fim">
+                    <span class="filtros__total" data-total aria-live="polite"></span>
+                    <div class="filtros__vistas" role="group" aria-label="Vista">
+                        <button type="button" class="filtro" data-vista="cartoes" aria-pressed="true" title="Cartões">▦</button>
+                        <button type="button" class="filtro" data-vista="lista" aria-pressed="false" title="Lista compacta">☰</button>
+                    </div>
+                    <button type="button" class="botao botao--mini" data-acao="recolher">Recolher tudo</button>
+                </div>
+            </div>
+            <div class="lista-repos" data-lista-repos></div>
         </section>
 
         <!-- PASTAS: onde procurar -->

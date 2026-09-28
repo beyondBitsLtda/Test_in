@@ -11,7 +11,7 @@ node app.js
 ```
 
 ```
-Test_in 1.1.0
+Test_in 1.2.0
 pastas configuradas: 1
 
 Abra no navegador:
@@ -62,6 +62,17 @@ O Test_in **olha a estrutura da pasta** e reconhece a arquitetura. É a arquitet
 | **Aplicação web** | pasta com `index.html` | Como está |
 
 Os **scripts de teste** (`*.testes.json`) do repositório são achados e ligados à aplicação pelo `alvo`, mesmo que morem em outro repositório.
+
+## Encontrar a aplicação
+
+A tela **Aplicações** organiza tudo em três níveis: **pasta cadastrada** (a faixa preta **PASTA**, quando há mais de uma) › **repositório** (**TERMINAL**) › **aplicação** (o cartão de embarque).
+
+- **Busca:** tecle **`/`** e digite parte do nome, do repositório ou do caminho. Acentos não importam (`relatorio` acha "Relatório"). **Enter** abre a primeira aplicação que sobrou; **Esc** limpa.
+- **Filtros:** por arquitetura (**FLX**, **MOD**, **WEB**, cada um com a contagem) e **Só com script de teste**. Cada pasta e cada repositório mostram quantas das suas aplicações aparecem ("2 de 14").
+- **Recolher:** clique no cabeçalho de uma pasta ou repositório, ou use **Recolher tudo**. Na busca, os grupos com resultado abrem sozinhos.
+- **Vista:** **▦ cartões** ou **☰ lista compacta**, uma aplicação por linha, para quem tem muitas.
+
+O que você recolheu, os filtros e a vista ficam guardados neste navegador.
 
 ---
 

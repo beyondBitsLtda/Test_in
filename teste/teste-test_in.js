@@ -95,6 +95,10 @@ async function principal() {
     conferir(apps.modulo && apps.modulo.nome === 'painelX' && apps.modulo.recursos.js.join(',') === '/resources/js/a.js,/resources/js/b.js',
         'módulo de página: os recursos na ORDEM NUMÉRICA do application.info (não na do arquivo)', JSON.stringify(apps.modulo && apps.modulo.recursos));
     conferir(apps.web && apps.web.titulo === 'Site Estatico', 'aplicação web: pasta com index.html', JSON.stringify(apps.web));
+    conferir(repos.length > 0 && repos.every(function (r) {
+        return r.raiz === path.resolve(REPOS) && r.relRaiz === path.basename(r.caminho);
+    }), 'cada repositório diz de qual pasta cadastrada veio (raiz) e o caminho relativo a ela',
+        JSON.stringify(repos.map(function (r) { return r.raiz + ' | ' + r.relRaiz; })));
     var fluxo = apps.fluxo;
     conferir(fluxo && fluxo.scripts.length === 1 && fluxo.scripts[0].nome === 'cadastro.testes.json',
         'o script de OUTRO repositório é ligado à tela pelo alvo (FORM:5001)', JSON.stringify(fluxo && fluxo.scripts));

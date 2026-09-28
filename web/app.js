@@ -143,49 +143,216 @@
         }).catch(function (e) { limpar(host).appendChild(el('div', 'vazio', 'Não consegui listar: ' + e.message)); });
     }
 
+    /* A LISTA: pasta cadastrada > repositorio > cartao. Com mais de uma
+       pasta, cada uma vira uma secao; pastas e repositorios recolhem, e o
+       que a pessoa recolheu, o filtro e a vista ficam neste navegador. A
+       busca so esconde cartoes (nao repinta): o foco e a digitacao seguem. */
+    var lista = { busca: '', tipo: '', soScripts: false, vista: 'cartoes', recolhidos: {} };
+    try {
+        var guardada = JSON.parse(localStorage.getItem('testin-lista') || '{}');
+        lista.tipo = TIPOS[guardada.tipo] ? guardada.tipo : '';
+        lista.soScripts = !!guardada.soScripts;
+        lista.vista = guardada.vista === 'lista' ? 'lista' : 'cartoes';
+        lista.recolhidos = guardada.recolhidos && typeof guardada.recolhidos === 'object' ? guardada.recolhidos : {};
+    } catch (e) { /* sem storage: os padroes */ }
+    function guardarLista() {
+        try {
+            localStorage.setItem('testin-lista', JSON.stringify({
+                tipo: lista.tipo, soScripts: lista.soScripts, vista: lista.vista, recolhidos: lista.recolhidos
+            }));
+        } catch (e) { /* sem storage: vale só agora */ }
+    }
+
+    /* "Relatório" acha "relatorio", e vice-versa. */
+    function normalizar(t) {
+        return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    }
+    function ultimaParte(caminho) {
+        return String(caminho || '').split(/[\\/]/).filter(Boolean).pop() || caminho;
+    }
+    function plural(n, um, varios) { return n + ' ' + (n === 1 ? um : varios); }
+
+    /* Um grupo recolhivel. O que a pessoa recolhe e guardado pelo clique no
+       cabecalho - e nao pelo evento "toggle", que tambem dispara quando a
+       busca abre os grupos sozinha. */
+    function grupo(chave, classe) {
+        var d = el('details', classe);
+        d.setAttribute('data-grupo', chave);
+        var cab = el('summary', classe + '__cab');
+        cab.addEventListener('click', function () {
+            if (lista.busca) return;
+            if (d.open) lista.recolhidos[chave] = true; else delete lista.recolhidos[chave];
+            guardarLista();
+            setTimeout(pintarBotaoRecolher, 0);
+        });
+        d.appendChild(cab);
+        return { d: d, cab: cab };
+    }
+
+    /* O CARTÃO DE EMBARQUE: o canhoto leva o código da arquitetura e quantos
+       scripts a aplicação tem; o corpo, o resto. */
+    function cartao(a, r) {
+        var n = (a.scripts || []).length;
+        var c = el('div', 'app app--' + a.tipo);
+        c.setAttribute('data-app-cartao', a.id);
+        var canhoto = el('div', 'app__canhoto');
+        canhoto.appendChild(el('span', 'app__codigo', CODIGO[a.tipo] || '---'));
+        canhoto.appendChild(el('span', 'app__portao', n + ' script' + (n === 1 ? '' : 's')));
+        c.appendChild(canhoto);
+        var corpo = el('div', 'app__corpo');
+        c.appendChild(corpo);
+        corpo.appendChild(el('span', 'selo selo--' + a.tipo, TIPOS[a.tipo]));
+        corpo.appendChild(el('div', 'app__titulo', a.titulo || a.nome));
+        /* "." e a aplicacao na raiz do repositorio - um ponto solto nao diz nada. */
+        corpo.appendChild(el('div', 'app__rel', a.rel === '.' ? 'raiz do repositório' : a.rel));
+        var rod = el('div', 'app__rodape');
+        rod.appendChild(el('span', 'ajuda', n ? plural(n, 'script de teste', 'scripts de teste') : 'sem script de teste ainda'));
+        var b = el('button', 'botao botao--principal botao--mini', 'Testar');
+        b.type = 'button';
+        b.addEventListener('click', function () { abrirApp(a, r); });
+        rod.appendChild(b);
+        corpo.appendChild(rod);
+        c._app = a;
+        c._repo = r;
+        c._busca = normalizar([a.titulo, a.nome, a.rel, r.nome, r.relRaiz, TIPOS[a.tipo], CODIGO[a.tipo]].join(' '));
+        return c;
+    }
+
     function pintarRepos() {
         var host = limpar($('[data-lista-repos]'));
-        if (!estado.repos.length) {
+        var totalApps = estado.repos.reduce(function (s, r) { return s + r.aplicacoes.length; }, 0);
+        $('[data-filtros]').hidden = !totalApps;
+        if (!totalApps) {
             host.appendChild(el('div', 'vazio', estado.pastas.length
                 ? 'Nenhuma aplicação reconhecida nas pastas configuradas.'
                 : 'Comece pela aba Pastas: cole o caminho onde ficam os seus repositórios.'));
             return;
         }
+
+        /* As pastas na ordem em que foram cadastradas. */
+        var chaveDe = function (p) { return String(p || '').replace(/[\\/]+$/, '').toLowerCase(); };
+        var ordem = estado.pastas.map(chaveDe);
+        var raizes = [], porRaiz = {};
         estado.repos.forEach(function (r) {
-            var bloco = el('div', 'repo');
-            var cab = el('div', 'repo__cab');
-            cab.appendChild(el('span', 'repo__nome', r.nome));
-            cab.appendChild(el('span', 'repo__caminho', r.caminho));
-            bloco.appendChild(cab);
-            var grade = el('div', 'apps');
-            if (!r.aplicacoes.length) grade.appendChild(el('div', 'ajuda', 'Só scripts de teste neste repositório.'));
-            r.aplicacoes.forEach(function (a) {
-                /* O CARTÃO DE EMBARQUE: o canhoto leva o código da arquitetura
-                   e quantos scripts a aplicação tem; o corpo, o resto. */
-                var c = el('div', 'app app--' + a.tipo);
-                var canhoto = el('div', 'app__canhoto');
-                canhoto.appendChild(el('span', 'app__codigo', CODIGO[a.tipo] || '---'));
-                canhoto.appendChild(el('span', 'app__portao', (a.scripts || []).length + ' script' + ((a.scripts || []).length === 1 ? '' : 's')));
-                c.appendChild(canhoto);
-                var corpo = el('div', 'app__corpo');
-                c.appendChild(corpo);
-                corpo.appendChild(el('span', 'selo selo--' + a.tipo, TIPOS[a.tipo]));
-                corpo.appendChild(el('div', 'app__titulo', a.titulo || a.nome));
-                corpo.appendChild(el('div', 'app__rel', a.rel));
-                var rod = el('div', 'app__rodape');
-                rod.appendChild(el('span', 'ajuda', (a.scripts || []).length
-                    ? (a.scripts.length + (a.scripts.length === 1 ? ' script de teste' : ' scripts de teste'))
-                    : 'sem script de teste ainda'));
-                var b = el('button', 'botao botao--principal botao--mini', 'Testar');
-                b.type = 'button';
-                b.addEventListener('click', function () { abrirApp(a, r); });
-                rod.appendChild(b);
-                corpo.appendChild(rod);
-                grade.appendChild(c);
-            });
-            bloco.appendChild(grade);
-            host.appendChild(bloco);
+            var k = chaveDe(r.raiz);
+            if (!porRaiz[k]) { porRaiz[k] = { caminho: r.raiz, repos: [] }; raizes.push(porRaiz[k]); }
+            porRaiz[k].repos.push(r);
         });
+        var posicao = function (g) { var i = ordem.indexOf(chaveDe(g.caminho)); return i < 0 ? ordem.length : i; };
+        raizes.sort(function (a, b) { return posicao(a) - posicao(b); });
+        var varias = raizes.length > 1;
+
+        raizes.forEach(function (g) {
+            var alvo = host;
+            if (varias) {
+                var gr = grupo('raiz:' + chaveDe(g.caminho), 'raiz');
+                gr.cab.appendChild(el('span', 'raiz__placa', 'Pasta'));
+                gr.cab.appendChild(el('span', 'raiz__nome', ultimaParte(g.caminho)));
+                gr.cab.appendChild(el('span', 'raiz__caminho', g.caminho));
+                gr.cab.appendChild(el('span', 'raiz__conta', ''));
+                alvo = el('div', 'raiz__corpo');
+                gr.d.appendChild(alvo);
+                host.appendChild(gr.d);
+            } else {
+                var unica = el('p', 'raiz-unica');
+                unica.appendChild(el('span', 'raiz__placa', 'Pasta'));
+                unica.appendChild(el('span', 'raiz__caminho', g.caminho));
+                host.appendChild(unica);
+            }
+            var soScripts = [];
+            g.repos.forEach(function (r) {
+                if (!r.aplicacoes.length) { soScripts.push(r.nome); return; }
+                var gp = grupo('repo:' + r.id, 'repo');
+                gp.cab.title = r.caminho;
+                gp.cab.appendChild(el('span', 'repo__nome', r.nome));
+                if (r.relRaiz && r.relRaiz !== '.' && r.relRaiz !== r.nome) gp.cab.appendChild(el('span', 'repo__caminho', r.relRaiz));
+                gp.cab.appendChild(el('span', 'repo__conta', ''));
+                var grade = el('div', 'apps');
+                r.aplicacoes.slice().sort(function (x, y) {
+                    return String(x.titulo || x.nome).localeCompare(String(y.titulo || y.nome), 'pt-BR', { sensitivity: 'base' });
+                }).forEach(function (a) { grade.appendChild(cartao(a, r)); });
+                gp.d.appendChild(grade);
+                alvo.appendChild(gp.d);
+            });
+            if (soScripts.length) {
+                var p = el('p', 'ajuda repo-scripts', 'Só scripts de teste: ' + soScripts.join(', '));
+                p.setAttribute('data-so-scripts-repos', '');
+                alvo.appendChild(p);
+            }
+        });
+
+        var nada = el('div', 'vazio vazio--busca');
+        nada.setAttribute('data-sem-resultado', '');
+        nada.appendChild(el('p', '', 'Nenhuma aplicação com esses filtros.'));
+        var limparB = el('button', 'botao botao--mini', 'Limpar filtros');
+        limparB.type = 'button';
+        limparB.addEventListener('click', limparFiltros);
+        nada.appendChild(limparB);
+        host.appendChild(nada);
+        filtrar();
+    }
+
+    function filtrar() {
+        var termos = normalizar(lista.busca).split(/\s+/).filter(Boolean);
+        var contas = { '': 0, fluxo: 0, modulo: 0, web: 0 }, total = 0, visiveis = 0;
+        $$('[data-app-cartao]').forEach(function (c) {
+            var a = c._app;
+            total++;
+            var casa = termos.every(function (t) { return c._busca.indexOf(t) >= 0; }) && (!lista.soScripts || (a.scripts || []).length > 0);
+            if (casa) { contas['']++; contas[a.tipo]++; }
+            c.hidden = !(casa && (!lista.tipo || a.tipo === lista.tipo));
+            if (!c.hidden) visiveis++;
+        });
+
+        /* Cada grupo mostra quantas das suas aplicacoes aparecem; o grupo sem
+           nenhuma some. Buscando, todos os que tem resultado abrem. */
+        $$('[data-grupo]').forEach(function (d) {
+            var todos = $$('[data-app-cartao]', d);
+            var vis = todos.filter(function (c) { return !c.hidden; }).length;
+            d.hidden = !vis;
+            d.open = termos.length ? true : !lista.recolhidos[d.getAttribute('data-grupo')];
+            var conta = $('.repo__conta, .raiz__conta', d);
+            if (conta) conta.textContent = vis === todos.length ? plural(todos.length, 'aplicação', 'aplicações') : vis + ' de ' + todos.length;
+        });
+        var filtrando = termos.length || lista.tipo || lista.soScripts;
+        $$('[data-so-scripts-repos]').forEach(function (p) { p.hidden = !!filtrando; });
+        $$('.raiz-unica').forEach(function (p) { p.hidden = !visiveis; });
+        var nada = $('[data-sem-resultado]');
+        if (nada) nada.hidden = visiveis > 0;
+
+        Object.keys(contas).forEach(function (k) { var s = $('[data-conta="' + k + '"]'); if (s) s.textContent = contas[k]; });
+        $$('[data-tipo]').forEach(function (b) {
+            var ativo = b.getAttribute('data-tipo') === lista.tipo;
+            b.classList.toggle('filtro--ativo', ativo);
+            b.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+        });
+        $$('[data-vista]').forEach(function (b) {
+            var ativo = b.getAttribute('data-vista') === lista.vista;
+            b.classList.toggle('filtro--ativo', ativo);
+            b.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+        });
+        $('[data-so-scripts]').checked = lista.soScripts;
+        $('[data-lista-repos]').classList.toggle('lista-repos--lista', lista.vista === 'lista');
+        $('[data-total]').textContent = visiveis === total
+            ? plural(total, 'aplicação', 'aplicações')
+            : visiveis + ' de ' + plural(total, 'aplicação', 'aplicações');
+        pintarBotaoRecolher();
+    }
+
+    function pintarBotaoRecolher() {
+        var b = $('[data-acao="recolher"]');
+        var abertos = $$('[data-grupo]').filter(function (d) { return !d.hidden && d.open; }).length;
+        b.textContent = abertos ? 'Recolher tudo' : 'Expandir tudo';
+        b.disabled = !!lista.busca || !$$('[data-grupo]').length;
+    }
+
+    function limparFiltros() {
+        lista.busca = '';
+        lista.tipo = '';
+        lista.soScripts = false;
+        $('[data-busca]').value = '';
+        guardarLista();
+        filtrar();
     }
 
     function acharApp(id) {
@@ -719,6 +886,44 @@
         else if (/^passo-/.test(acao) && estado.passo) estado.passo.decidir(acao.substring(6));
         else if (acao === 'tema') alternarTema();
         else if (acao === 'tela-cheia') telaCheia(!$('[data-palco]').classList.contains('palco--cheio'));
+        else if (acao === 'recolher') {
+            var grupos = $$('[data-grupo]');
+            var fechar = grupos.some(function (d) { return !d.hidden && d.open; });
+            grupos.forEach(function (d) {
+                if (fechar) lista.recolhidos[d.getAttribute('data-grupo')] = true;
+                else delete lista.recolhidos[d.getAttribute('data-grupo')];
+            });
+            guardarLista();
+            filtrar();
+        }
+    });
+
+    /* ---------------- a busca e os filtros da lista de aplicacoes */
+    $('[data-busca]').addEventListener('input', function () { lista.busca = this.value; filtrar(); });
+    $('[data-busca]').addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && this.value) { e.preventDefault(); this.value = ''; lista.busca = ''; filtrar(); }
+        /* Enter abre a primeira aplicação que sobrou na busca. */
+        if (e.key === 'Enter' && lista.busca) {
+            var primeiro = $$('[data-app-cartao]').filter(function (c) { return !c.hidden; })[0];
+            if (primeiro) { e.preventDefault(); abrirApp(primeiro._app, primeiro._repo); }
+        }
+    });
+    $$('[data-tipo]').forEach(function (b) {
+        b.addEventListener('click', function () { lista.tipo = b.getAttribute('data-tipo'); guardarLista(); filtrar(); });
+    });
+    $$('[data-vista]').forEach(function (b) {
+        b.addEventListener('click', function () { lista.vista = b.getAttribute('data-vista'); guardarLista(); filtrar(); });
+    });
+    $('[data-so-scripts]').addEventListener('change', function () { lista.soScripts = this.checked; guardarLista(); filtrar(); });
+    /* "/" leva à busca, como nos sites de código - fora de um campo. */
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+        if (/^(INPUT|TEXTAREA|SELECT)$/.test(String(e.target.tagName)) || e.target.isContentEditable) return;
+        var busca = $('[data-busca]');
+        if (!busca.offsetParent) return;
+        e.preventDefault();
+        busca.focus();
+        busca.select();
     });
 
     $('[data-scripts]').addEventListener('change', carregarScriptEscolhido);
