@@ -7,10 +7,10 @@
   "status": "concluida",
   "responsavel": "Brayan Rodrigues",
   "prazo": "2026-10-09",
-  "versaoAlvo": "0.1.0",
+  "versaoAlvo": "1.2.0",
   "criadaEm": "2026-09-27T05:43:14.408Z",
   "criadaPor": "Brayan Rodrigues <brayan.rodrigues@delp.com.br>",
-  "atualizadaEm": "2026-09-28T01:25:57.211Z",
+  "atualizadaEm": "2026-09-28T01:29:30.730Z",
   "comentarios": [
     {
       "quando": "2026-09-28T01:09:59.924Z",
@@ -54,6 +54,11 @@
       "quando": "2026-09-28T01:25:57.211Z",
       "autor": "Brayan Rodrigues <brayan.rodrigues@delp.com.br>",
       "mudanca": "situação: em-revisao → concluida"
+    },
+    {
+      "quando": "2026-09-28T01:29:30.730Z",
+      "autor": "Brayan Rodrigues (via Claude)",
+      "mudanca": "versão alvo: 0.1.0 → 1.2.0"
     }
   ]
 }
