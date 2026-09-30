@@ -16,14 +16,22 @@
    aqui o codigo dos seus repositorios - que e para o que o Test_in existe.
 
    AS ROTAS
-     /                         a interface
-     /api/...                  a interface conversando com o servidor
-     /__testin/tela/<app>     a aplicacao testada (casca, modulo ou pagina)
+     /__testin/                a interface
+     /__testin/api/...         a interface conversando com o servidor
+     /__testin/tela/<app>      a aplicacao testada (casca, modulo ou pagina)
      /__app/<app>/<arquivo>    os arquivos da aplicacao (com a emulacao)
-     /__testin/dados          as consultas de dados da tela -> simulacoes
-     /__testin/evento         o evento de validacao do Enviar
+     /__testin/dados           as consultas de dados da tela -> simulacoes
+     /__testin/evento          o evento de validacao do Enviar
+     /__testin/pedido          a chamada de rede que a aplicacao web fez sem
+                               simulacao (para o resultado mostrar)
      /portal/..., /webdesk/... os enderecos da plataforma que as telas pedem,
                                respondidos pela emulacao
+     / (todo o resto)          a APLICACAO WEB aberta por ultimo. Ela fica na
+                               raiz, como no servidor dela: um app React/Vite
+                               pede /assets/... e o roteador dele le o caminho
+                               do endereco - dentro de /__app/<id>/ nada disso
+                               funcionaria. Por isso a interface mora em
+                               /__testin/, e nao na raiz.
 ============================================================================ */
 'use strict';
 
@@ -73,7 +81,11 @@ var BIBLIOTECAS = {
 var PNG_VAZIO = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
 
 function criar(token) {
-    var estado = { repos: [], apps: {}, contextos: {}, simulacoes: {}, pedidos: [], cfgEstilos: '' };
+    /* appWeb: a aplicacao web que ocupa a raiz do endereco (a ultima aberta).
+       caso: sobe a cada troca de simulacoes - o ambiente web limpa o
+       armazenamento da aplicacao quando ele muda (um caso nao herda a sessao
+       do outro). */
+    var estado = { repos: [], apps: {}, contextos: {}, simulacoes: {}, pedidos: [], cfgEstilos: '', appWeb: '', caso: 0 };
 
     function redescobrir() {
         var cfg = config.ler();
@@ -183,7 +195,14 @@ function criar(token) {
         var s = estado.simulacoes || {};
         return {
             modo: modo, app: app ? app.id : '',
-            simulacoes: { usuario: s.usuario || {}, atividade: s.atividade, destino: s.destino, websocket: s.websocket || {} }
+            simulacoes: { usuario: s.usuario || {}, atividade: s.atividade, destino: s.destino, websocket: s.websocket || {} },
+            web: modo === 'web' ? {
+                caso: estado.caso,
+                http: Array.isArray(s.http) ? s.http : [],
+                rede: s.rede && typeof s.rede === 'object' ? s.rede : {},
+                armazenamento: s.armazenamento && typeof s.armazenamento === 'object' ? s.armazenamento : {},
+                websocket: s.websocket || null
+            } : undefined
         };
     }
 
@@ -192,17 +211,59 @@ function criar(token) {
         var app = estado.apps[appId];
         if (!app) return enviarTexto(res, 404, 'text/plain; charset=utf-8', 'aplicação não encontrada - atualize a lista no Test_in');
         var html;
+        estado.appWeb = app.tipo === 'web' ? app.id : '';
+        if (app.tipo === 'web') {
+            /* A aplicacao web passa a ocupar a raiz; ?pagina= abre outra
+               pagina dela. As barras do comeco saem: "//site" viraria um
+               redirecionamento para FORA do Test_in. */
+            var pagina = String(url.searchParams.get('pagina') || '').replace(/^[\\/]+/, '');
+            if (!pagina && app.principal !== 'index.html') pagina = app.principal;
+            res.writeHead(302, { Location: '/' + encodeURI(pagina), 'Cache-Control': 'no-store' });
+            return res.end();
+        }
         if (app.tipo === 'fluxo') {
             var cfg = cfgNavegador('casca', app);
             html = emulacao.renderizarCasca(app, url.searchParams.get('fluxo') || '', cfg);
         } else if (app.tipo === 'modulo') {
             html = emulacao.renderizarModulo(app, cfgNavegador('modulo', app), estado.cfgEstilos);
             if (html === null) return enviarTexto(res, 404, 'text/plain; charset=utf-8', 'o modelo (' + app.modelo + ') não foi encontrado');
-        } else {
-            res.writeHead(302, { Location: '/__app/' + app.id + '/' + encodeURI(app.principal) });
-            return res.end();
         }
         enviarTexto(res, 200, 'text/html; charset=utf-8', html, { 'Content-Security-Policy': "frame-ancestors 'self'" });
+    }
+
+    /* A pagina HTML de uma aplicacao web sai com o ambiente web (rede,
+       armazenamento, arquivos que nao carregam) antes de qualquer script. */
+    function servirHtmlWeb(res, app, arq) {
+        fs.readFile(arq, 'utf8', function (e, html) {
+            if (e) return enviarTexto(res, 404, 'text/plain; charset=utf-8', 'não encontrado');
+            enviarTexto(res, 200, 'text/html; charset=utf-8', emulacao.injetarAmbienteWeb(html, cfgNavegador('web', app)),
+                        { 'Content-Security-Policy': "frame-ancestors 'self'" });
+        });
+    }
+
+    function arquivoOuNada(p) {
+        try { var s = fs.statSync(p); return s.isFile() ? p : (s.isDirectory() ? arquivoOuNada(path.join(p, 'index.html')) : null); }
+        catch (e) { return null; }
+    }
+
+    /* A APLICACAO WEB NA RAIZ. O arquivo pedido, se existir; senao, o
+       caminho que e uma PAGINA (sem extensao, ou o navegador pedindo HTML)
+       recebe a pagina principal - e o que um servidor de SPA faz, para o
+       roteador da aplicacao abrir /dashboard, /financeiro... O arquivo que
+       falta (um /assets/x.js) e 404 de verdade. */
+    function servirWeb(req, res, app, p) {
+        var rel = p.replace(/^\/+/, '');
+        var alvo = dentroDaBase(app.caminho, rel);
+        if (!alvo) return enviarTexto(res, 400, 'text/plain; charset=utf-8', 'caminho recusado');
+        var arq = arquivoOuNada(alvo);
+        if (!arq) {
+            var pagina = !path.extname(rel) || /text\/html/.test(String(req.headers.accept || ''));
+            if (!pagina) return enviarTexto(res, 404, 'text/plain; charset=utf-8', 'não encontrado na aplicação: /' + rel);
+            arq = arquivoOuNada(path.join(app.caminho, app.principal));
+            if (!arq) return enviarTexto(res, 404, 'text/plain; charset=utf-8', 'a aplicação não tem ' + app.principal);
+        }
+        if (/\.html?$/i.test(arq)) return servirHtmlWeb(res, app, arq);
+        servirArquivo(res, arq, { 'Content-Security-Policy': "frame-ancestors 'self'" });
     }
 
     function baseDoApp(app) {
@@ -217,6 +278,7 @@ function criar(token) {
             if (html === null) return enviarTexto(res, 404, 'text/plain; charset=utf-8', 'não encontrado');
             return enviarTexto(res, 200, 'text/html; charset=utf-8', html, { 'Content-Security-Policy': "frame-ancestors 'self'" });
         }
+        if (app.tipo === 'web' && /\.html?$/i.test(arq)) return servirHtmlWeb(res, app, arq);
         servirArquivo(res, arq, { 'Content-Security-Policy': "frame-ancestors 'self'" });
     }
 
@@ -338,6 +400,7 @@ function criar(token) {
         },
         'POST /api/simulacoes': function (req, url, c) {
             estado.simulacoes = (c.simulacoes && typeof c.simulacoes === 'object') ? c.simulacoes : {};
+            estado.caso++;
             return { ok: true };
         },
         'GET /api/pedidos': function (req, url) {
@@ -354,9 +417,17 @@ function criar(token) {
 
         var p = url.pathname;
 
+        /* A raiz com o token (?t=, o endereco que o terminal mostra) ou sem
+           aplicacao web aberta leva a interface: quem guardou o endereco
+           antigo continua chegando nela. */
+        if (p === '/__testin' || ((p === '/' || p === '/index.html') && (url.searchParams.has('t') || !estado.apps[estado.appWeb]))) {
+            res.writeHead(302, { Location: '/__testin/' + url.search, 'Cache-Control': 'no-store' });
+            return res.end();
+        }
+
         /* A interface. A pagina principal exige o token; os arquivos dela
            nao carregam segredo nenhum. */
-        if (p === '/' || p === '/index.html') {
+        if (p === '/__testin/' || p === '/__testin/index.html') {
             plantarCookie(url, res);
             if (!autorizado(req, url)) {
                 return enviarTexto(res, 401, 'text/html; charset=utf-8',
@@ -366,8 +437,9 @@ function criar(token) {
             }
             return servirArquivo(res, path.join(WEB, 'index.html'), { 'Content-Security-Policy': CSP_INTERFACE });
         }
-        if (/^\/(app\.js|app\.css|motor\.js|relatorio\.js|logo\.png)$/.test(p)) {
-            return servirArquivo(res, path.join(WEB, p.substring(1)), { 'Content-Security-Policy': CSP_INTERFACE });
+        var m;
+        if ((m = /^\/__testin\/(app\.js|app\.css|motor\.js|relatorio\.js|logo\.png)$/.exec(p))) {
+            return servirArquivo(res, path.join(WEB, m[1]), { 'Content-Security-Policy': CSP_INTERFACE });
         }
         if (/^\/__testin\/plataforma\/[\w.-]+\.(js|css)$/.test(p)) {
             return servirArquivo(res, path.join(WEB, 'plataforma', path.basename(p)));
@@ -379,7 +451,6 @@ function criar(token) {
 
         if (!autorizado(req, url)) return falha(res, 401, 'token ausente ou inválido. Reabra pelo endereço que o Test_in imprimiu.');
 
-        var m;
         if ((m = /^\/__testin\/tela\/([0-9a-f]{12})$/.exec(p))) return servirTela(req, res, url, m[1]);
         if ((m = /^\/__app\/([0-9a-f]{12})\/(.*)$/.exec(p))) {
             var app = estado.apps[m[1]];
@@ -404,17 +475,41 @@ function criar(token) {
             }, function (e) { falha(res, 400, e.message); });
         }
 
+        /* A chamada de rede que a aplicacao web fez sem simulacao (bloqueada
+           ou liberada): vai para a lista do resultado, com o modelo. */
+        if (p === '/__testin/pedido' && req.method === 'POST') {
+            return lerCorpo(req).then(function (c) {
+                var curto = function (v, n) { return String(v == null ? '' : v).substring(0, n); };
+                registrarPedido({
+                    nome: curto(c.nome, 80), metodo: curto(c.metodo, 10).toUpperCase(), url: curto(c.url, 500),
+                    filtros: (Array.isArray(c.filtros) ? c.filtros : []).slice(0, 30).map(function (f) {
+                        return { campo: curto(f && f.campo, 80), valor: curto(f && f.valor, 200) };
+                    }),
+                    simulado: false, liberada: !!c.liberada, motivo: curto(c.motivo, 200), via: 'rede'
+                });
+                json(res, 200, {});
+            }, function (e) { falha(res, 400, e.message); });
+        }
+
+        var acao = /^\/__testin\/api\//.test(p) ? ROTAS[req.method + ' ' + p.substring('/__testin'.length)] : null;
+        if (acao) {
+            var corpo = req.method === 'POST' ? lerCorpo(req) : Promise.resolve({});
+            return corpo.then(function (c) { return acao(req, url, c); })
+                .then(function (dados) { ok(res, dados); })
+                .then(null, function (e) { falha(res, 400, e.message || String(e)); });
+        }
+        if (/^\/__(testin|app)(\/|$)/.test(p)) return falha(res, 404, 'não existe: ' + req.method + ' ' + p);
+
+        /* Com uma aplicacao web aberta, o resto do endereco e dela. */
+        var web = estado.apps[estado.appWeb];
+        if (web) return servirWeb(req, res, web, p);
+
         /* O endereco de contexto de um modulo (/<contexto>/resources/...):
            imagens e arquivos que o modelo referencia pelo caminho absoluto. */
         var ctx = /^\/([^/]+)\/(.+)$/.exec(p);
         if (ctx && estado.contextos[ctx[1]]) return servirDoApp(req, res, estado.contextos[ctx[1]], ctx[2]);
 
-        var acao = ROTAS[req.method + ' ' + p];
-        if (!acao) return falha(res, 404, 'não existe: ' + req.method + ' ' + p);
-        var corpo = req.method === 'POST' ? lerCorpo(req) : Promise.resolve({});
-        corpo.then(function (c) { return acao(req, url, c); })
-            .then(function (dados) { ok(res, dados); })
-            .then(null, function (e) { falha(res, 400, e.message || String(e)); });
+        return falha(res, 404, 'não existe: ' + req.method + ' ' + p);
     });
 
     servidor.redescobrir = redescobrir;

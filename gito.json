@@ -9,14 +9,34 @@
     "responsavel": "Brayan Rodrigues",
     "equipe": ""
   },
-  "versao": "1.2.0",
-  "atualizadoEm": "2026-09-27",
+  "versao": "1.3.0",
+  "atualizadoEm": "2026-09-29",
   "compilacao": {
-    "numero": 3,
-    "data": "2026-09-27",
+    "numero": 4,
+    "data": "2026-09-29",
     "artefato": ""
   },
   "historico": [
+    {
+      "versao": "1.3.0",
+      "data": "2026-09-29",
+      "branch": "main",
+      "tipo": "funcionalidade",
+      "resumo": "O Test_in passa a testar aplicações web modernas (React, Vite, SPA) como a Satiflow: a aplicação abre como no servidor dela, e as chamadas de rede são simuladas pelo script, sem sair para produção.",
+      "itens": [
+        "A aplicação web aberta passa a responder na raiz do endereço, como no servidor dela: o /assets/... do build é achado (antes a tela ficava em branco) e o roteador do React vê as rotas certas.",
+        "Rota da aplicação que não é arquivo (/dashboard, /financeiro) recebe a página principal, como num servidor de SPA; o abrirPagina abre rotas com ponto no lugar da barra (dashboard.financeiro).",
+        "A interface do Test_in mudou para /__testin/. O endereço antigo (com o token) continua levando a ela.",
+        "Novo bloco simulacoes.http no script: regras por método, endereço e parâmetros respondem fetch e XMLHttpRequest com status, JSON, eco de valores, atraso ou falha de rede.",
+        "Chamada para fora do computador sem simulação é BLOQUEADA e aparece no resultado com o modelo pronto; só sai de verdade o que o script liberar em simulacoes.rede.permitir.",
+        "Novo simulacoes.armazenamento: a cada caso, o armazenamento da aplicação é limpo e recebe os valores do script (ex.: uma sessão de login simulada).",
+        "O Conferir chamada passa a valer para as chamadas de rede da aplicação web, pelo nome da regra e pelos parâmetros.",
+        "Script ou folha de estilos do build que não carrega vira erro de JavaScript: o Conferir sem erro deixa de aprovar a tela em branco.",
+        "Projeto Vite: o index.html de desenvolvimento aparece desligado, dizendo para gerar o build, e o dist mais velho que o src ganha aviso no cartão.",
+        "Conferido com a Satiflow: a suíte de 8 casos passa inteira, com o login simulado (antes 5 dos 6 casos sem rede reprovavam). Fluxo e módulo sem regressão."
+      ],
+      "issues": []
+    },
     {
       "versao": "1.2.0",
       "data": "2026-09-27",
@@ -77,6 +97,7 @@
         "Executar os passos do script: abrir, preencher, selecionar, marcar, clicar, enviar, esperar e conferir (texto, campo, visível, oculto, bloqueado, alerta, console, fonte de dados e chamada).",
         "Simular as consultas de dados (DatasetFactory e o serviço REST de dados) pelas regras do bloco simulacoes do script, inclusive falhas, sem mudar o código da aplicação.",
         "Emular a plataforma que a tela espera: bibliotecas (jQuery, jQuery UI, Mustache), biblioteca de componentes, folha de estilos, WebSocket, usuário, etapa do fluxo e os eventos de servidor da tela (displayFields, enableFields, validateForm) numa sandbox.",
+        "Testar aplicações web modernas (React, Vite, SPA) pelo build: a aplicação abre na raiz do endereço, com as rotas dela, e as chamadas de rede (fetch, XMLHttpRequest, WebSocket) são respondidas pelas regras de simulacoes.http do script.",
         "Mostrar o andamento ao vivo, em tela cheia, em câmera lenta ou passo a passo.",
         "Gerar o relatório HTML autocontido (abre sem internet) e o resultado em .json.",
         "Herdar, na primeira abertura, as pastas e a folha de estilos já cadastradas na Bancada de Testes."
@@ -85,9 +106,10 @@
         "Não roda os scripts de fluxo que a plataforma executa no servidor depois do envio: o Test_in simula o envio e para ali.",
         "Não troca de usuário no meio de um caso (aprovação em cadeia fica de fora).",
         "Não emula componentes muito específicos da biblioteca original: o que falta avisa no console e não quebra a tela.",
-        "Não acessa servidores, bancos nem dados reais: toda consulta é respondida pelas simulações do script.",
+        "Não acessa servidores, bancos nem dados reais: toda consulta é respondida pelas simulações do script, e a chamada de rede da aplicação web para fora sem simulação é bloqueada (só sai o que o script liberar em simulacoes.rede.permitir).",
         "Não é acessível pela rede: escuta só em 127.0.0.1, para a pessoa que o abriu.",
-        "Não permite passo com código livre: o script de teste usa um vocabulário fechado de ações."
+        "Não permite passo com código livre: o script de teste usa um vocabulário fechado de ações.",
+        "Não roda a fonte de um projeto com build (o index.html do Vite que aponta para /src): testa a pasta do build (dist), gerada antes com npm run build."
       ]
     },
     "stack": [
@@ -100,11 +122,11 @@
       "Testes: teste/teste-test_in.js (rápido, sem navegador) e teste/e2e-navegador.js (Node 22 ou mais novo, navegador sem janela pelo protocolo de depuração)"
     ],
     "arquitetura": {
-      "resumo": "Um servidor Node (app.js + src/) sobe em 127.0.0.1:7041 e entrega a interface (web/) e a aplicação testada no MESMO endereço; é isso que deixa o motor, rodando no navegador, abrir a tela num quadro (iframe), preencher, clicar e conferir. src/descobrir.js reconhece as aplicações e os scripts nas pastas cadastradas (só leitura); src/emulacao.js renderiza a casca da tela de fluxo e o modelo do módulo de página, roda os eventos de servidor numa sandbox e responde as consultas de dados pelas simulações; web/plataforma/ambiente.js é injetado antes dos scripts da tela e cria os objetos globais que ela espera. Segurança: escuta só em 127.0.0.1, token por instalação num cookie HttpOnly, Host e Origin conferidos e caminhos presos às pastas cadastradas. Não há banco de dados: a configuração de cada pessoa (pastas, token e folha de estilos) fica em %APPDATA%\\test_in\\config.json, jQuery, jQuery UI e Mustache baixados da CDN ficam em cache em %APPDATA%\\test_in\\cache e, opcionalmente, na pasta vendor/ (para rodar sem internet); o Bootstrap 3 da folha de estilos emulada vem sempre da CDN, a menos que a pessoa aponte a folha de estilos original. Os relatórios são baixados pela pessoa; nada mais é gravado.",
+      "resumo": "Um servidor Node (app.js + src/) sobe em 127.0.0.1:7041 e entrega a interface (web/, em /__testin/) e a aplicação testada no MESMO endereço; a aplicação web aberta ocupa a raiz (/), como no servidor dela, com o index.html para as rotas da SPA; é isso que deixa o motor, rodando no navegador, abrir a tela num quadro (iframe), preencher, clicar e conferir. src/descobrir.js reconhece as aplicações e os scripts nas pastas cadastradas (só leitura); src/emulacao.js renderiza a casca da tela de fluxo e o modelo do módulo de página, roda os eventos de servidor numa sandbox e responde as consultas de dados pelas simulações; web/plataforma/ambiente.js é injetado antes dos scripts da tela e cria os objetos globais que ela espera; na aplicação web, web/plataforma/web.js intercepta fetch, XMLHttpRequest, WebSocket e sendBeacon (responde pelas regras de simulacoes.http e bloqueia o que vai para fora sem regra), prepara o armazenamento de cada caso e transforma em erro o arquivo do build que não carrega. Segurança: escuta só em 127.0.0.1, token por instalação num cookie HttpOnly, Host e Origin conferidos e caminhos presos às pastas cadastradas. Não há banco de dados: a configuração de cada pessoa (pastas, token e folha de estilos) fica em %APPDATA%\\test_in\\config.json, jQuery, jQuery UI e Mustache baixados da CDN ficam em cache em %APPDATA%\\test_in\\cache e, opcionalmente, na pasta vendor/ (para rodar sem internet); o Bootstrap 3 da folha de estilos emulada vem sempre da CDN, a menos que a pessoa aponte a folha de estilos original. Os relatórios são baixados pela pessoa; nada mais é gravado.",
       "diagramas": [
         {
           "titulo": "Como uma rodada de teste acontece",
-          "mermaid": "flowchart LR\n  P[Pessoa] -->|abrir-test_in.cmd| S[Servidor Node<br/>127.0.0.1:7041]\n  S -->|interface| UI[Interface<br/>web/index.html]\n  UI -->|script .testes.json| M[Motor<br/>web/motor.js]\n  M -->|abre num quadro| T[Tela testada<br/>+ ambiente.js]\n  T -->|bibliotecas e dados| S\n  S -->|lê só nas pastas cadastradas| R[(Repositórios<br/>da pessoa)]\n  S -->|simulações do script| T\n  S -.->|1ª vez, depois cache| CDN[cdnjs]\n  M -->|resultado| UI\n  UI -->|download| REL[Relatório HTML<br/>e .json]"
+          "mermaid": "flowchart LR\n  P[Pessoa] -->|abrir-test_in.cmd| S[Servidor Node<br/>127.0.0.1:7041]\n  S -->|interface| UI[Interface<br/>/__testin/]\n  UI -->|script .testes.json| M[Motor<br/>web/motor.js]\n  M -->|abre num quadro| T[Tela testada<br/>+ ambiente.js]\n  T -->|bibliotecas e dados| S\n  S -->|lê só nas pastas cadastradas| R[(Repositórios<br/>da pessoa)]\n  S -->|simulações do script| T\n  S -.->|1ª vez, depois cache| CDN[cdnjs]\n  M -->|resultado| UI\n  UI -->|download| REL[Relatório HTML<br/>e .json]"
         }
       ]
     },
@@ -112,7 +134,7 @@
       {
         "ambiente": "Estação de trabalho (local)",
         "onde": "No computador de cada pessoa (Windows), com Node.js 18 ou mais novo. Abre pelo abrir-test_in.cmd ou pelo atalho da Área de Trabalho; fechar a janela do terminal encerra. O endereço exige o token desta instalação, que o terminal mostra ao abrir.",
-        "url": "http://127.0.0.1:7041/",
+        "url": "http://127.0.0.1:7041/__testin/",
         "verificar": false
       }
     ],

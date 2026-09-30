@@ -302,6 +302,14 @@ button, input, select { font: inherit; }
 .app__titulo { font-size: 16px; font-weight: 700; }
 .app__rel { font-family: var(--mono); font-size: 11.5px; color: var(--texto-fraco); word-break: break-all; }
 .app__rodape { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 6px; gap: 8px; }
+/* o aviso do cartao (build velho, fonte que so roda no Vite): faixa laranja
+   na borda, texto normal - o laranja nao passa o AA como cor de texto */
+.app__aviso {
+    font-size: 12px; line-height: 1.4; color: var(--texto);
+    border-left: 3px solid var(--laranja); padding: 3px 0 3px 8px; background: var(--superficie-2); border-radius: 0 4px 4px 0;
+}
+.app--fonte .app__canhoto { opacity: .55; }
+.lista-repos--lista .app__aviso { display: none; }
 
 .selo {
     align-self: flex-start; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
@@ -557,8 +565,8 @@ table.campos td, table.campos th { text-align: left; padding: 4px 6px; border-bo
 .abertura__logo {
     width: clamp(180px, 34vmin, 320px);
     aspect-ratio: 640 / 646;
-    -webkit-mask: url(/logo.png) center / contain no-repeat;
-            mask: url(/logo.png) center / contain no-repeat;
+    -webkit-mask: url(/__testin/logo.png) center / contain no-repeat;
+            mask: url(/__testin/logo.png) center / contain no-repeat;
     background: linear-gradient(110deg, #EAE5DF 0 42%, #FFFFFF 50%, #EAE5DF 58% 100%);
     background-size: 260% 100%;
     background-position: 100% 0;

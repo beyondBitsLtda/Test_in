@@ -111,7 +111,7 @@ async function principal() {
     await aba.enviar('Runtime.enable');
     await aba.enviar('Page.enable');
     await aba.enviar('Emulation.setFocusEmulationEnabled', { enabled: true }).catch(function () {});
-    await aba.enviar('Page.navigate', { url: 'http://127.0.0.1:' + porta + '/?t=' + token });
+    await aba.enviar('Page.navigate', { url: 'http://127.0.0.1:' + porta + '/__testin/?t=' + token });
 
     for (var k = 0; k < 60; k++) {
         var pronto = await aba.avaliar('!!(window.testin && window.testin.estado.repos.length)').catch(function () { return false; });

@@ -45,7 +45,7 @@ netstat -ano -p tcp | findstr /r /c:"127\.0\.0\.1:7041 .*LISTENING" >nul
 if not errorlevel 1 (
     echo.
     echo  O Test_in ja esta aberto. Abrindo o navegador...
-    start "" "http://127.0.0.1:7041/"
+    start "" "http://127.0.0.1:7041/__testin/"
     popd
     exit /b 0
 )

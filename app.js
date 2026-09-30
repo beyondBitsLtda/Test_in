@@ -24,7 +24,7 @@ var child = require('child_process');
 var servidor = require('./src/servidor');
 var config = require('./src/config');
 
-var VERSAO = '1.2.0';
+var VERSAO = '1.3.0';
 var PORTA_PADRAO = 7041;
 
 function lerArgumentos(argv) {
@@ -66,7 +66,7 @@ function principal() {
 
     /* SO 127.0.0.1: ninguem na rede alcanca o Test_in. */
     srv.listen(op.porta, '127.0.0.1', function () {
-        var url = 'http://127.0.0.1:' + op.porta + '/?t=' + token;
+        var url = 'http://127.0.0.1:' + op.porta + '/__testin/?t=' + token;
         console.log('Test_in ' + VERSAO);
         var cfg = config.ler();
         console.log('pastas configuradas: ' + (cfg.pastas.length || 'nenhuma ainda'));

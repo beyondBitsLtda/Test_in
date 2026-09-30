@@ -100,7 +100,7 @@
 
     /* ================================================================ pastas */
     function carregarEstado() {
-        return api('GET', '/api/estado').then(function (d) {
+        return api('GET', '/__testin/api/estado').then(function (d) {
             estado.pastas = d.pastas || [];
             $('[data-estilos]').value = d.estilosBase || '';
             pintarPastas();
@@ -127,7 +127,7 @@
     }
 
     function salvarPastas(pastas) {
-        return api('POST', '/api/config', { pastas: pastas }).then(function (d) {
+        return api('POST', '/__testin/api/config', { pastas: pastas }).then(function (d) {
             avisar(d.repositorios + ' repositório(s) encontrado(s).', 'ok');
             return carregarEstado().then(carregarRepos);
         }).catch(function (e) { avisar(e.message, 'erro'); });
@@ -137,7 +137,7 @@
     function carregarRepos() {
         var host = limpar($('[data-lista-repos]'));
         host.appendChild(el('p', 'ajuda', 'Procurando aplicações…'));
-        return api('GET', '/api/repositorios').then(function (repos) {
+        return api('GET', '/__testin/api/repositorios').then(function (repos) {
             estado.repos = repos;
             pintarRepos();
         }).catch(function (e) { limpar(host).appendChild(el('div', 'vazio', 'Não consegui listar: ' + e.message)); });
@@ -205,10 +205,14 @@
         corpo.appendChild(el('div', 'app__titulo', a.titulo || a.nome));
         /* "." e a aplicacao na raiz do repositorio - um ponto solto nao diz nada. */
         corpo.appendChild(el('div', 'app__rel', a.rel === '.' ? 'raiz do repositório' : a.rel));
+        if (a.aviso) corpo.appendChild(el('div', 'app__aviso', a.aviso));
         var rod = el('div', 'app__rodape');
         rod.appendChild(el('span', 'ajuda', n ? plural(n, 'script de teste', 'scripts de teste') : 'sem script de teste ainda'));
         var b = el('button', 'botao botao--principal botao--mini', 'Testar');
         b.type = 'button';
+        /* A fonte de um projeto Vite só roda com o servidor do Vite: o botão
+           fica, desligado, para a pessoa entender por que não. */
+        if (a.testavel === false) { b.disabled = true; b.title = a.aviso || ''; c.classList.add('app--fonte'); }
         b.addEventListener('click', function () { abrirApp(a, r); });
         rod.appendChild(b);
         corpo.appendChild(rod);
@@ -375,6 +379,7 @@
         if (app.tipo === 'fluxo' && app.eventos && app.eventos.length) det += '  ·  eventos: ' + app.eventos.join(', ');
         if (app.tipo === 'modulo') det += '  ·  ' + app.recursos.js.length + ' scripts, ' + app.recursos.css.length + ' estilos';
         $('[data-app-detalhe]').textContent = det;
+        if (app.aviso) avisar(app.aviso);
 
         var sel = limpar($('[data-scripts]'));
         var op0 = el('option', '', (app.scripts || []).length ? 'Escolha um script…' : 'Nenhum script ligado a esta aplicação');
@@ -406,7 +411,7 @@
         var v = $('[data-scripts]').value;
         if (!v) return;
         var partes = v.split('|');
-        api('GET', '/api/script?repositorio=' + encodeURIComponent(partes[0]) + '&rel=' + encodeURIComponent(partes[1]))
+        api('GET', '/__testin/api/script?repositorio=' + encodeURIComponent(partes[0]) + '&rel=' + encodeURIComponent(partes[1]))
             .then(function (d) { carregarTexto(d.texto, d.nome); })
             .catch(function (e) { avisar(e.message, 'erro'); });
     }
@@ -435,11 +440,17 @@
         inst.textContent = a.instrucoes || '';
 
         var s = a.simulacoes || {};
-        var fontes = Object.keys(s.fontes || {});
+        /* As fontes (plataforma) e as regras de rede (aplicação web) pelo nome. */
+        var fontes = Object.keys(s.fontes || {}).concat((Array.isArray(s.http) ? s.http : []).map(function (r) {
+            return (r && r.nome) || String((r && r.metodo) || '') + ' ' + String((r && r.url) || '');
+        }));
         simEl.appendChild(el('div', '', ''));
         simEl.firstChild.innerHTML = '';
         simEl.firstChild.appendChild(el('strong', '', 'Dados simulados: '));
         simEl.firstChild.appendChild(document.createTextNode(fontes.length ? fontes.join(', ') : 'nenhuma fonte (as consultas voltam vazias)'));
+        if (s.rede && Array.isArray(s.rede.permitir) && s.rede.permitir.length) {
+            simEl.appendChild(el('div', '', 'Rede liberada: ' + s.rede.permitir.join(', ')));
+        }
         if (s.usuario && s.usuario.login) simEl.appendChild(el('div', '', 'Usuário: ' + s.usuario.login));
         if (s.atividade !== undefined) simEl.appendChild(el('div', '', 'Etapa ao abrir: ' + s.atividade + (s.destino !== undefined ? ' → envio para ' + s.destino : '')));
 
@@ -670,9 +681,15 @@
             },
             enderecos: {
                 processo: function (fluxo) { return '/__testin/tela/' + app.id + '?fluxo=' + encodeURIComponent(fluxo); },
+                /* A aplicação web abre na raiz do endereço (o servidor a põe lá);
+                   outra página dela vai no ?pagina=, relativa à raiz. O motor
+                   não aceita "/" no código da página: na rota de uma SPA, o
+                   ponto faz as vezes da barra (relatorios.mensal ->
+                   /relatorios/mensal). Arquivo .html abre como está. */
                 pagina: function (pg) {
                     if (pg === '.' || app.tipo !== 'web') return '/__testin/tela/' + app.id;
-                    return '/__app/' + app.id + '/' + encodeURIComponent(pg);
+                    var rota = /\.html?$/i.test(pg) ? pg : pg.split('.').join('/');
+                    return '/__testin/tela/' + app.id + '?pagina=' + encodeURIComponent(rota);
                 }
             },
             antesDoCaso: function (caso) {
@@ -681,7 +698,7 @@
                     var abre = caso.passos[0];
                     if (abre && abre.processo) s.fluxo = abre.processo;
                 }
-                return api('POST', '/api/simulacoes', { simulacoes: s });
+                return api('POST', '/__testin/api/simulacoes', { simulacoes: s });
             },
             consultarDataset: function (nome, coluna, valor) {
                 return fetch('/__testin/dados', {
@@ -702,11 +719,12 @@
             $('[data-acao="parar"]').hidden = true;
             $('[data-acao="rodar"]').disabled = false;
             $('[data-andamento]').textContent = (res.situacao === 'INTERROMPIDA' ? 'Interrompida' : 'Concluída') + ' em ' + duracao(res.duracaoMs);
-            return api('GET', '/api/pedidos?desde=' + inicio).then(function (d) {
+            return api('GET', '/__testin/api/pedidos?desde=' + inicio).then(function (d) {
                 var vistos = {};
                 estado.semSimulacao = (d.pedidos || []).filter(function (p) {
-                    if (p.simulado || vistos[p.nome]) return false;
-                    vistos[p.nome] = true;
+                    var chave = p.via + ' ' + (p.metodo || '') + ' ' + (p.url || p.nome);
+                    if (p.simulado || vistos[chave]) return false;
+                    vistos[chave] = true;
                     return true;
                 });
             }, function () { estado.semSimulacao = []; }).then(function () {
@@ -764,19 +782,23 @@
         if (estado.semSimulacao.length) {
             var painel = el('div', 'painel sem-simulacao');
             painel.style.marginTop = '12px';
-            painel.appendChild(el('div', 'painel__titulo', 'Fontes consultadas sem simulação (' + estado.semSimulacao.length + ')'));
-            painel.appendChild(el('p', 'ajuda', 'A tela consultou estas fontes e recebeu resposta vazia. Um modelo para colar em "simulacoes" no arquivo de teste:'));
-            var modelo = { fontes: {} };
-            estado.semSimulacao.forEach(function (p) {
-                if (p.via === 'http') return;
-                var quando = {};
-                (p.filtros || []).forEach(function (f) { quando[f.campo] = f.valor; });
-                modelo.fontes[p.nome] = [{ quando: quando, linhas: [] }];
-            });
-            var pre = el('pre', '', JSON.stringify(modelo, null, 2));
-            painel.appendChild(pre);
+            var semRegra = estado.semSimulacao.filter(function (p) { return p.via !== 'http' && !p.liberada; });
+            var bloqueadas = semRegra.filter(function (p) { return p.via === 'rede'; });
+            painel.appendChild(el('div', 'painel__titulo', 'Consultas sem simulação (' + semRegra.length + ')'));
+            if (semRegra.length) {
+                painel.appendChild(el('p', 'ajuda', (bloqueadas.length
+                    ? plural(bloqueadas.length, 'chamada de rede foi BLOQUEADA', 'chamadas de rede foram BLOQUEADAS') +
+                      ' (o teste não sai para servidores de verdade) e as fontes sem regra voltaram vazias. '
+                    : 'A tela consultou estas fontes e recebeu resposta vazia. ') + 'Um modelo para colar em "simulacoes" no arquivo de teste:'));
+                painel.appendChild(el('pre', '', JSON.stringify(window.TestinRelatorio.modeloDeSimulacao(semRegra), null, 2)));
+            }
             var http = estado.semSimulacao.filter(function (p) { return p.via === 'http'; });
             if (http.length) painel.appendChild(el('p', 'ajuda', 'Endereços da plataforma sem emulação: ' + http.map(function (p) { return p.nome; }).join(', ')));
+            var liberadas = estado.semSimulacao.filter(function (p) { return p.liberada; });
+            if (liberadas.length) {
+                painel.appendChild(el('p', 'ajuda', 'Saíram para a rede, liberadas em "simulacoes.rede.permitir": ' +
+                    liberadas.map(function (p) { return p.metodo + ' ' + p.url; }).join(', ')));
+            }
             host.appendChild(painel);
         }
 
@@ -873,7 +895,7 @@
             if (!v) return;
             salvarPastas(estado.pastas.concat([v])).then(function () { $('[data-nova-pasta]').value = ''; });
         } else if (acao === 'salvar-estilos') {
-            api('POST', '/api/config', { estilosBase: $('[data-estilos]').value }).then(function () {
+            api('POST', '/__testin/api/config', { estilosBase: $('[data-estilos]').value }).then(function () {
                 avisar('Salvo.', 'ok');
                 carregarEstado();
             }).catch(function (e2) { avisar(e2.message, 'erro'); });
@@ -957,7 +979,7 @@
 
     /* O token fica no cookie; na barra de endereco ele so atrapalha (vai
        para o historico e aparece em print). */
-    if (/[?&]t=/.test(location.search)) history.replaceState(null, '', '/');
+    if (/[?&]t=/.test(location.search)) history.replaceState(null, '', '/__testin/');
 
     /* Para automacao (e para quem quiser rodar pelo console). */
     window.testin = {
@@ -975,7 +997,7 @@
     /* O Test_in aberto ANTES de uma atualizacao continua com o servidor velho.
        Confere ao abrir e a cada rodada; a faixa fica ate reabrir. */
     function conferirVersao() {
-        return api('GET', '/api/versao').then(function (v) {
+        return api('GET', '/__testin/api/versao').then(function (v) {
             if (!v.desatualizada || $('.faixa-versao')) return;
             var f = el('div', 'faixa-versao', 'O Test_in foi atualizado depois de aberto. Feche a janela preta do Test_in e abra de novo: até lá, parte das correções não vale.');
             document.body.insertBefore(f, document.body.firstChild);

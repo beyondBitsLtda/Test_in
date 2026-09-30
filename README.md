@@ -11,11 +11,11 @@ node app.js
 ```
 
 ```
-Test_in 1.2.0
+Test_in 1.3.0
 pastas configuradas: 1
 
 Abra no navegador:
-  http://127.0.0.1:7041/?t=4f1c...
+  http://127.0.0.1:7041/__testin/?t=4f1c...
 ```
 
 O navegador abre sozinho. Fechar a janela do terminal encerra o Test_in. **Atualizou o Test_in com ele aberto?** Feche e abra de novo: a interface pega as mudanças sozinha, o servidor não. Quando isso acontece, uma faixa vermelha avisa no topo da tela.
@@ -59,7 +59,7 @@ O Test_in **olha a estrutura da pasta** e reconhece a arquitetura. É a arquitet
 |---|---|---|
 | **Tela de fluxo** | `forms/<número> - <nome>/` com o `.html` (e, às vezes, `events/`) | Dentro de uma **casca** com o botão **Enviar**. Os eventos de servidor (`displayFields`, `enableFields`) rodam numa sandbox e o efeito deles chega ao HTML antes do primeiro script. O Enviar chama o `beforeSendValidate` da tela e o `validateForm` |
 | **Módulo de página** | `<...>/src/main/resources/application.info` + `view.ftl` | O modelo é renderizado (instância, textos do `.properties`, `if`/`list`), os recursos entram **na ordem do `application.info`** e o ciclo de vida do módulo inicia (`init`, `bindings`) |
-| **Aplicação web** | pasta com `index.html` | Como está |
+| **Aplicação web** | pasta com `index.html` | Na **raiz** do endereço, como no servidor dela (ver [Aplicações web](#aplicações-web-react-vite-spa)) |
 
 Os **scripts de teste** (`*.testes.json`) do repositório são achados e ligados à aplicação pelo `alvo`, mesmo que morem em outro repositório.
 
@@ -141,11 +141,45 @@ A tela consulta dados como faria no servidor: `DatasetFactory.getDataset`, o ser
 - `"{{CAMPO}}"` numa linha devolve o valor com que a tela filtrou (o "eco").
 - `"erro"` faz a consulta **falhar**, para testar como a tela lida com isso: o `DatasetFactory` lança o erro e o serviço REST responde HTTP 500 com a mensagem.
 
-**Sem simulação, a consulta volta vazia e o Test_in avisa.** No resultado aparece "Fontes consultadas sem simulação", já com um **modelo pronto** para colar no arquivo.
+**Sem simulação, a consulta volta vazia e o Test_in avisa.** No resultado aparece "Consultas sem simulação", já com um **modelo pronto** para colar no arquivo.
 
 **Outros campos:**
 - **`atividade` / `destino`:** a etapa em que a tela abre e para onde o Enviar manda (o que `getValue("WKNumState")` e o `beforeSendValidate` recebem).
 - **`websocket`:** a tela que abre um WebSocket recebe um simulado, que responde conforme `respostas` (pela ação da mensagem) ou fica mudo.
+
+---
+
+## Aplicações web (React, Vite, SPA)
+
+Uma aplicação web não conversa com a plataforma, e sim com as APIs dela (um Supabase, um Worker, um backend). O Test_in a abre como o servidor dela abriria e fica no meio do caminho da rede.
+
+**Teste o build, não a fonte.** Num projeto Vite, o `index.html` da raiz aponta para `/src/main.jsx`, e só o servidor do Vite sabe transformar isso. O Test_in mostra esse cartão **desligado**, com o aviso, e testa a pasta do build (`dist/`): rode `npm run build` antes. Se o `dist/` estiver mais velho que o `src/`, o cartão avisa.
+
+**A aplicação fica na raiz do endereço.** Quando você abre uma aplicação web, ela passa a responder em `http://127.0.0.1:7041/`: o `/assets/...` do build é achado, e o roteador dela (`BrowserRouter`) vê `/`, `/dashboard` e `/financeiro` como no servidor de verdade. Uma rota que não é arquivo recebe a página principal, como num servidor de SPA. A interface do Test_in fica em `/__testin/`.
+
+**Abrir uma rota:** `{ "acao": "abrirPagina", "pagina": "dashboard.financeiro" }` abre `/dashboard/financeiro`. O ponto faz as vezes da barra, porque o código da página não aceita `/`; um arquivo `.html` abre como está.
+
+**A rede é bloqueada por padrão.** Toda chamada `fetch`, `XMLHttpRequest`, WebSocket ou `sendBeacon` para **fora deste computador** sem simulação **não sai**: falha como se não houvesse rede, e aparece no resultado com um modelo pronto. Teste não mexe em produção. As regras ficam em `simulacoes`:
+
+```json
+"simulacoes": {
+  "http": [
+    { "nome": "login", "metodo": "POST", "url": "/auth/v1/token*", "quando": { "grant_type": "password" },
+      "status": 400, "json": { "error_code": "invalid_credentials", "msg": "Invalid login credentials" } },
+    { "nome": "usuarios", "url": "/rest/v1/usuarios*", "quando": { "id": "eq.5" }, "json": [ { "id": 5, "nome": "{{id}}" } ] },
+    { "url": "https://api.exemplo.com/*", "erroDeRede": true }
+  ],
+  "rede": { "permitir": [] },
+  "armazenamento": { "local": { "chave-da-sessao": { "access_token": "simulado" } } }
+}
+```
+
+- **`http`:** a primeira regra que casa responde. `url` aceita `*`: sem `://`, compara só o caminho e a busca; com, o endereço inteiro. `quando` confere os parâmetros da busca e os campos do corpo JSON (ou de formulário), com as mesmas regras das fontes (`"*"`, lista). A resposta tem `status` (padrão 200), `json` ou `texto`, `cabecalhos` e `atrasoMs`; `"{{campo}}"` devolve o valor recebido. `"erroDeRede": true` simula a falha de conexão.
+- **`rede.permitir`:** endereços que podem sair de verdade (ex.: `"https://*.supabase.co/*"`). Use só com ambiente de testes, nunca com produção. As chamadas liberadas aparecem no resultado.
+- **`armazenamento`:** no começo de **cada caso**, o `localStorage` e o `sessionStorage` da aplicação são limpos (um caso não herda a sessão do outro) e recebem `local` e `sessao`. É o jeito de a aplicação abrir já logada, com uma sessão simulada.
+- **`websocket`:** o mesmo simulado das telas de fluxo; sem ele, o WebSocket para fora é bloqueado.
+- **Conferir chamada:** cada chamada entra no caso com o `nome` da regra (ou o caminho com pontos: `/rest/v1/usuarios` vira `rest.v1.usuarios`) e os parâmetros como filtros: `{ "acao": "conferirChamada", "dataset": "login", "filtro": "email=ana@exemplo.com" }`.
+- **Build quebrado:** script ou folha de estilos que não carrega vira erro de JavaScript, e o `conferirSemErroNoConsole` reprova a tela em branco.
 
 ---
 
@@ -183,6 +217,7 @@ A tela testada pede ao servidor as bibliotecas e os serviços da plataforma pelo
 - **Token por instalação:** vai num cookie `HttpOnly`, e sem ele a API e os arquivos não abrem.
 - **Host e Origin conferidos:** fecha a porta do DNS rebinding.
 - **O Test_in só lê dentro das pastas cadastradas:** `..` é recusado, inclusive codificado.
+- **A aplicação web não sai para a rede:** chamada para fora sem simulação é bloqueada, e só um endereço liberado no script (`rede.permitir`) sai de verdade.
 
 **Uma ressalva honesta:** a tela testada roda no mesmo endereço da interface. É isso que deixa o motor ler e mexer nela, e isso significa que um código testado mal-intencionado poderia usar a interface. Use o Test_in com o código dos seus repositórios, que é para o que ele existe.
 

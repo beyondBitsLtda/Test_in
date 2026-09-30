@@ -318,13 +318,17 @@ function ocultar(tag) {
 
 /* A configuracao para o navegador vai inline, ANTES de tudo: o ambiente
    precisa existir antes do primeiro script da tela. */
-function injetarAmbiente(html, cfg) {
+function injetarAmbiente(html, cfg, script) {
     var bloco = '<script>window.__testin = ' + JSON.stringify(cfg).replace(/</g, '\\u003c') + ';</script>\n' +
-                '<script src="/__testin/plataforma/ambiente.js"></script>\n';
+                '<script src="' + (script || '/__testin/plataforma/ambiente.js') + '"></script>\n';
     if (/<head[^>]*>/i.test(html)) return html.replace(/<head[^>]*>/i, function (m) { return m + '\n' + bloco; });
     if (/<html[^>]*>/i.test(html)) return html.replace(/<html[^>]*>/i, function (m) { return m + '\n<head>' + bloco + '</head>'; });
     return bloco + html;
 }
+
+/* A aplicacao web: a mesma ideia, com o ambiente dela (web.js) - rede,
+   armazenamento e arquivos que nao carregam. Nada da plataforma entra. */
+function injetarAmbienteWeb(html, cfg) { return injetarAmbiente(html, cfg, '/__testin/plataforma/web.js'); }
 
 /* A CASCA: o que a plataforma poe em volta da tela de fluxo - o cabecalho e
    o botao Enviar. A tela abre num quadro dentro dela, como la. */
@@ -502,6 +506,7 @@ module.exports = {
     executarEvento: executarEvento,
     renderizarTela: renderizarTela,
     renderizarCasca: renderizarCasca,
+    injetarAmbienteWeb: injetarAmbienteWeb,
     renderizarModulo: renderizarModulo,
     renderizarModelo: renderizarModelo,
     aplicarEfeitos: aplicarEfeitos,

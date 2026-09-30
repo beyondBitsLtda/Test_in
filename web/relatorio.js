@@ -27,6 +27,28 @@
         return s < 60 ? s.toString().replace('.', ',') + ' s' : Math.floor(s / 60) + 'm ' + Math.round(s % 60) + 's';
     }
 
+    /* O MODELO para colar em "simulacoes": as fontes consultadas sem regra e
+       as chamadas de rede que a aplicacao web fez e foram bloqueadas. As
+       liberadas (simulacoes.rede.permitir) nao entram: sairam de proposito. */
+    function modeloDeSimulacao(pedidos) {
+        var modelo = {}, fontes = {}, http = [];
+        (pedidos || []).forEach(function (p) {
+            if (p.via === 'http' || p.liberada) return;
+            if (p.via === 'rede') {
+                var r = { nome: p.nome, metodo: p.metodo || undefined, url: (p.url || '') + '*', status: 200, json: {} };
+                if (p.metodo === 'WS') { delete r.metodo; r.url = p.url; delete r.status; delete r.json; }
+                http.push(r);
+                return;
+            }
+            var q = {};
+            (p.filtros || []).forEach(function (f) { q[f.campo] = f.valor; });
+            fontes[p.nome] = [{ quando: q, linhas: [] }];
+        });
+        if (Object.keys(fontes).length) modelo.fontes = fontes;
+        if (http.length) modelo.http = http;
+        return modelo;
+    }
+
     /* Rosca da situacao dos casos. */
     function rosca(contagem, total) {
         var r = 54, c = 2 * Math.PI * r, ang = 0, fatias = '';
@@ -99,14 +121,14 @@
         casos.forEach(function (c) { contagem[c.status] = (contagem[c.status] || 0) + 1; });
         var total = casos.length;
         var erros = casos.reduce(function (s, c) { return s + (c.errosConsole || []).length; }, 0);
-        var sem = (meta.semSimulacao || []).filter(function (p) { return p.via !== 'http'; });
+        var sem = (meta.semSimulacao || []).filter(function (p) { return p.via !== 'http' && !p.liberada; });
         var app = meta.aplicacao || {};
         var taxa = total ? Math.round((contagem.APROVADO || 0) / total * 100) : 0;
 
         var kpis = [
             ['Casos', total, ''], ['Aprovados', contagem.APROVADO || 0, 'ok'], ['Reprovados', contagem.REPROVADO || 0, (contagem.REPROVADO ? 'erro' : '')],
             ['Não executados', (contagem.NAO_EXECUTADO || 0) + (contagem.INTERROMPIDO || 0), ''], ['Aprovação', taxa + '%', taxa === 100 ? 'ok' : ''],
-            ['Duração', dur(res.duracaoMs), ''], ['Erros de JS', erros, erros ? 'alerta' : ''], ['Fontes sem simulação', sem.length, sem.length ? 'alerta' : '']
+            ['Duração', dur(res.duracaoMs), ''], ['Erros de JS', erros, erros ? 'alerta' : ''], ['Consultas sem simulação', sem.length, sem.length ? 'alerta' : '']
         ].map(function (k) {
             return '<div class="kpi' + (k[2] ? ' kpi--' + k[2] : '') + '"><div class="kpi__rot">' + k[0] + '</div><div class="kpi__val">' + esc(k[1]) + '</div></div>';
         }).join('');
@@ -114,7 +136,10 @@
         var legenda = ['APROVADO', 'REPROVADO', 'INTERROMPIDO', 'NAO_EXECUTADO'].filter(function (k) { return contagem[k]; })
             .map(function (k) { return '<li><span style="background:' + COR[k] + '"></span>' + ROTULO[k] + ': ' + contagem[k] + '</li>'; }).join('');
 
-        var fontes = meta.simulacoes && meta.simulacoes.fontes ? Object.keys(meta.simulacoes.fontes) : [];
+        var sims = meta.simulacoes || {};
+        var fontes = Object.keys(sims.fontes || {}).concat((Array.isArray(sims.http) ? sims.http : []).map(function (r) {
+            return (r && r.nome) || String((r && r.metodo) || '') + ' ' + String((r && r.url) || '');
+        }));
 
         var css = [
             ':root{--txt:#000000;--fraco:#555555;--linha:#EAE5DF;--laranja:#FF6B05}',
@@ -159,14 +184,9 @@
 
         var semHtml = '';
         if (sem.length) {
-            var modelo = { fontes: {} };
-            sem.forEach(function (p) {
-                var q = {};
-                (p.filtros || []).forEach(function (f) { q[f.campo] = f.valor; });
-                modelo.fontes[p.nome] = [{ quando: q, linhas: [] }];
-            });
-            semHtml = '<h2>Fontes consultadas sem simulação</h2><p class="fraco">A tela consultou estas fontes e recebeu resposta vazia. ' +
-                'Modelo para completar em "simulacoes" no arquivo de teste:</p><pre>' + esc(JSON.stringify(modelo, null, 2)) + '</pre>';
+            semHtml = '<h2>Consultas sem simulação</h2><p class="fraco">A tela consultou estas fontes (resposta vazia) ou tentou chamadas de rede ' +
+                '(bloqueadas: teste não sai para servidores de verdade). Modelo para completar em "simulacoes" no arquivo de teste:</p><pre>' +
+                esc(JSON.stringify(modeloDeSimulacao(sem), null, 2)) + '</pre>';
         }
 
         return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
@@ -185,5 +205,5 @@
             '</div></body></html>';
     }
 
-    global.TestinRelatorio = { gerar: gerar };
+    global.TestinRelatorio = { gerar: gerar, modeloDeSimulacao: modeloDeSimulacao };
 }(typeof window !== 'undefined' ? window : this));

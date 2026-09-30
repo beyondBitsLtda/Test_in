@@ -83,6 +83,18 @@ gravar(path.join(REPOS, 'testes-central', 'cadastro.testes.json'),
     JSON.stringify({ formato: 'delp-testes-de-tela', alvo: 'FORM:5001', casos: [{ codigo: 'c1', nome: 'x', passos: [{ acao: 'abrirProcesso', processo: 'p' }] }] }));
 gravar(path.join(REPOS, 'testes-central', '.git', 'HEAD'), 'x');
 gravar(path.join(APP, 'segredo.txt'), 'nao pode sair');
+/* um projeto Vite: a fonte (index.html -> /src/main.jsx) e o build (dist/) */
+var SPA = path.join(REPOS, 'painel-spa');
+gravar(path.join(SPA, '.git', 'HEAD'), 'x');
+gravar(path.join(SPA, 'package.json'), JSON.stringify({ name: 'painel-spa', devDependencies: { vite: '^8.0.0' } }));
+gravar(path.join(SPA, 'index.html'), '<!doctype html><html><head><title>Painel SPA</title></head><body><div id="root"></div>' +
+    '<script type="module" src="/src/main.jsx"></script></body></html>');
+gravar(path.join(SPA, 'src', 'main.jsx'), 'export default 1;');
+gravar(path.join(SPA, 'dist', 'index.html'), '<!doctype html><html><head><title>Painel SPA</title>' +
+    '<script type="module" crossorigin src="/assets/app-1.js"></script></head><body><div id="root"></div></body></html>');
+gravar(path.join(SPA, 'dist', 'assets', 'app-1.js'), 'window.__spa = 1;');
+var doisDiasAtras = new Date(Date.now() - 2 * 24 * 3600 * 1000);
+fs.utimesSync(path.join(SPA, 'dist', 'index.html'), doisDiasAtras, doisDiasAtras);
 
 async function principal() {
     console.log('--- 1. A DESCOBERTA ---');
@@ -99,6 +111,14 @@ async function principal() {
         return r.raiz === path.resolve(REPOS) && r.relRaiz === path.basename(r.caminho);
     }), 'cada repositório diz de qual pasta cadastrada veio (raiz) e o caminho relativo a ela',
         JSON.stringify(repos.map(function (r) { return r.raiz + ' | ' + r.relRaiz; })));
+    var todasApps = [];
+    repos.forEach(function (r) { r.aplicacoes.forEach(function (a) { todasApps.push(a); }); });
+    var fonteSpa = todasApps.filter(function (a) { return a.tipo === 'web' && a.caminho === path.resolve(SPA); })[0];
+    var distSpa = todasApps.filter(function (a) { return a.tipo === 'web' && a.caminho === path.resolve(SPA, 'dist'); })[0];
+    conferir(fonteSpa && fonteSpa.testavel === false && /Vite/.test(fonteSpa.aviso) && /npm run build/.test(fonteSpa.aviso),
+        'projeto Vite: o index.html da FONTE aparece desligado, dizendo para gerar o build', JSON.stringify(fonteSpa));
+    conferir(distSpa && distSpa.testavel !== false && /mais velho que o código/.test(distSpa.aviso || ''),
+        'o build (dist) é testável, e avisa quando está mais velho que o src/', JSON.stringify(distSpa));
     var fluxo = apps.fluxo;
     conferir(fluxo && fluxo.scripts.length === 1 && fluxo.scripts[0].nome === 'cadastro.testes.json',
         'o script de OUTRO repositório é ligado à tela pelo alvo (FORM:5001)', JSON.stringify(fluxo && fluxo.scripts));
@@ -171,6 +191,71 @@ async function principal() {
         'o jQuery vem antes, e os scripts do módulo na ordem do application.info');
 
     /* ====================================================================== */
+    console.log('\n--- 2b. O AMBIENTE WEB (web.js) ---');
+    var WEBJS = fs.readFileSync(path.join(RAIZ_APP, 'web', 'plataforma', 'web.js'), 'utf8');
+    function memoria() {
+        var d = {};
+        return {
+            getItem: function (k) { return k in d ? d[k] : null; }, setItem: function (k, v) { d[k] = String(v); },
+            removeItem: function (k) { delete d[k]; }, key: function (i) { return Object.keys(d)[i] || null; },
+            clear: function () { d = {}; }, get length() { return Object.keys(d).length; }, _d: function () { return d; }
+        };
+    }
+    function ambienteWeb(web, local) {
+        var saiu = [], avisos = [], ctxMotor = { chamadas: [] };
+        var j = {
+            location: new URL('http://127.0.0.1:7041/dashboard'), __testin: { web: web },
+            fetch: function (e) { saiu.push(e && e.url ? e.url : String(e)); return Promise.resolve(new Response('real', { status: 200 })); },
+            Request: Request, Response: Response, URL: URL, URLSearchParams: URLSearchParams, Promise: Promise, TypeError: TypeError,
+            setTimeout: setTimeout, setInterval: function () { return 0; }, clearInterval: function () {},
+            localStorage: local || memoria(), sessionStorage: memoria(), navigator: {},
+            console: { warn: function (m) { avisos.push(m); }, error: function () {} }, addEventListener: function () {},
+            __delpTesteCtx: ctxMotor
+        };
+        j.window = j;
+        vm.createContext(j);
+        vm.runInContext(WEBJS, j);
+        return { j: j, saiu: saiu, avisos: avisos, chamadas: ctxMotor.chamadas };
+    }
+    var aw = ambienteWeb({ caso: 1, http: [
+        { nome: 'login', metodo: 'POST', url: '/auth/v1/token*', quando: { grant_type: 'password' }, status: 400,
+          json: { error: 'invalid_grant', email: '{{email}}' } },
+        { url: 'https://api.exemplo.com/*', erroDeRede: true }
+    ], rede: { permitir: ['https://api.liberada.com/*'] } });
+    var resp = await aw.j.fetch('https://abc.supabase.co/auth/v1/token?grant_type=password',
+        { method: 'POST', body: JSON.stringify({ email: 'ana@exemplo.com', password: 'x' }) });
+    var corpoResp = await resp.json();
+    conferir(resp.status === 400 && corpoResp.error === 'invalid_grant' && corpoResp.email === 'ana@exemplo.com' &&
+             aw.saiu.every(function (u) { return u.indexOf('supabase') < 0; }),
+        'a regra de simulacoes.http responde (status, JSON, "{{email}}" ecoa o corpo) e a chamada NÃO sai para a rede', JSON.stringify(corpoResp));
+    conferir(aw.chamadas.some(function (c) { return c.dataset === 'login' && c.filtros.some(function (f) { return f.campo === 'grant_type' && f.valor === 'password'; }); }),
+        'a chamada entra no caso com o nome da regra e os filtros, para o "Conferir chamada"', JSON.stringify(aw.chamadas));
+    var bloqueou = '';
+    await aw.j.fetch('https://abc.supabase.co/rest/v1/usuarios?id=eq.5').catch(function (e) { bloqueou = e.message; });
+    conferir(/bloqueado pelo Test_in/.test(bloqueou) && aw.saiu.indexOf('/__testin/pedido') >= 0 &&
+             aw.saiu.every(function (u) { return u.indexOf('rest/v1') < 0; }),
+        'chamada para FORA sem simulação é BLOQUEADA (falha como sem rede) e vai para o resultado', bloqueou + ' | ' + aw.saiu.join(', '));
+    conferir(aw.chamadas.some(function (c) { return c.dataset === 'rest.v1.usuarios'; }), 'sem nome na regra, a chamada leva o caminho com pontos (rest.v1.usuarios)');
+    var falhouRede = '';
+    await aw.j.fetch('https://api.exemplo.com/v2/x').catch(function (e) { falhouRede = e.message; });
+    conferir(/falha de rede simulada/.test(falhouRede), '"erroDeRede" simula a falha de conexão', falhouRede);
+    await aw.j.fetch('https://api.liberada.com/status');
+    await aw.j.fetch('http://127.0.0.1:7041/config.json');
+    conferir(aw.saiu.indexOf('https://api.liberada.com/status') >= 0 && aw.saiu.indexOf('http://127.0.0.1:7041/config.json') >= 0,
+        'o endereço liberado em "rede.permitir" e o do próprio Test_in seguem de verdade', aw.saiu.join(', '));
+
+    var local = memoria();
+    local.setItem('sb-sessao-velha', 'x');
+    local.setItem('testin-tema', 'escuro');
+    ambienteWeb({ caso: 7, armazenamento: { local: { 'sb-token': { access_token: 'simulado' } } } }, local);
+    conferir(local.getItem('sb-sessao-velha') === null && local.getItem('testin-tema') === 'escuro' &&
+             JSON.parse(local.getItem('sb-token')).access_token === 'simulado',
+        'no começo do caso, o armazenamento da aplicação é limpo (menos o do Test_in) e recebe o simulado', JSON.stringify(local._d()));
+    local.setItem('gravado-no-caso', '1');
+    ambienteWeb({ caso: 7, armazenamento: {} }, local);
+    conferir(local.getItem('gravado-no-caso') === '1', 'dentro do MESMO caso (outra página), o armazenamento não é limpo de novo');
+
+    /* ====================================================================== */
     console.log('\n--- 3. AS TRAVAS DO SERVIDOR ---');
     config.gravar({ pastas: [REPOS] });
     var token = config.tokenDoUsuario();
@@ -195,15 +280,19 @@ async function principal() {
     var comToken = { headers: { 'x-testin-token': token } };
 
     var x = await pedir('GET', '/');
-    conferir(x.status === 401, 'a interface sem o token não abre');
+    conferir(x.status === 302 && x.headers.location === '/__testin/', 'sem aplicação web aberta, a raiz leva à interface (/__testin/)', x.status + ' ' + x.headers.location);
     x = await pedir('GET', '/?t=' + token);
+    conferir(x.status === 302 && x.headers.location === '/__testin/?t=' + token, 'o endereço antigo, com o token, continua chegando na interface');
+    x = await pedir('GET', '/__testin/');
+    conferir(x.status === 401, 'a interface sem o token não abre');
+    x = await pedir('GET', '/__testin/?t=' + token);
     conferir(x.status === 200 && /HttpOnly/.test(String(x.headers['set-cookie'])) && /SameSite=Strict/.test(String(x.headers['set-cookie'])),
         'com o token, abre e planta o cookie HttpOnly');
-    x = await pedir('GET', '/api/repositorios');
+    x = await pedir('GET', '/__testin/api/repositorios');
     conferir(x.status === 401, 'a API sem o token é recusada');
-    x = await pedir('GET', '/api/repositorios', { headers: { 'x-testin-token': token, Host: 'site-malicioso.com' } });
+    x = await pedir('GET', '/__testin/api/repositorios', { headers: { 'x-testin-token': token, Host: 'site-malicioso.com' } });
     conferir(x.status === 403, 'Host de fora (DNS rebinding) é recusado, mesmo com o token');
-    x = await pedir('GET', '/api/repositorios', comToken);
+    x = await pedir('GET', '/__testin/api/repositorios', comToken);
     conferir(x.status === 200 && JSON.parse(x.corpo).dados.length >= 1, 'com o token, a API responde');
 
     var idFluxo = srv.estado.repos.map(function (rr) { return rr.aplicacoes; })
@@ -218,7 +307,7 @@ async function principal() {
     conferir(x.status === 200 && /ambiente\.js/.test(x.corpo) && /frame-ancestors 'self'/.test(String(x.headers['content-security-policy'])),
         'a tela sai com a emulação e só pode ser embutida pela própria Test_in');
 
-    await pedir('POST', '/api/simulacoes', { headers: { 'x-testin-token': token, 'Content-Type': 'application/json' }, corpo: { simulacoes: sim } });
+    await pedir('POST', '/__testin/api/simulacoes', { headers: { 'x-testin-token': token, 'Content-Type': 'application/json' }, corpo: { simulacoes: sim } });
     x = await pedir('POST', '/__testin/dados', { headers: { 'x-testin-token': token }, corpo: { nome: 'dsLimite', restricoes: [{ campo: 'TIPO', valor: 'A', tipo: 1 }] } });
     conferir(JSON.parse(x.corpo).values[0].LIMITE === '100', 'a consulta da tela recebe a simulação do caso', x.corpo);
     x = await pedir('POST', '/api/public/ecm/dataset/datasets', { headers: { 'x-testin-token': token }, corpo: { name: 'dsLimite', constraints: [{ _field: 'TIPO', _initialValue: 'A', _type: 1 }] } });
@@ -227,13 +316,45 @@ async function principal() {
     conferir(x.status === 500 && JSON.parse(x.corpo).message === 'falha simulada', 'pelo REST, a regra "erro" também FALHA a consulta (HTTP 500), e não volta vazia', x.status + ' ' + x.corpo);
     x = await pedir('POST', '/__testin/evento', { headers: { 'x-testin-token': token }, corpo: { app: idFluxo, evento: 'validateForm', valores: {} } });
     conferir(JSON.parse(x.corpo).erro === 'Informe o valor.', 'o Enviar da casca roda o validateForm no servidor', x.corpo);
-    x = await pedir('GET', '/api/versao', comToken);
+    x = await pedir('GET', '/__testin/api/versao', comToken);
     conferir(x.status === 200 && JSON.parse(x.corpo).dados.desatualizada === false, 'recém-aberta, o Test_in não se diz desatualizada (o aviso só aparece se o código do servidor mudar depois)', x.corpo);
     x = await pedir('GET', '/webdesk/vcXMLRPC.js');
     conferir(x.status === 200, 'os endereços da plataforma respondem (emulados), mesmo sem token');
     x = await pedir('GET', '/portal/api/algo-desconhecido');
-    var ped = await pedir('GET', '/api/pedidos', comToken);
+    var ped = await pedir('GET', '/__testin/api/pedidos', comToken);
     conferir(x.status === 404 && /algo-desconhecido/.test(ped.corpo), 'endereço da plataforma sem emulação é 404 e fica registrado para a pessoa ver');
+
+    /* a aplicacao web na raiz */
+    var distId = srv.estado.repos.map(function (rr) { return rr.aplicacoes; }).reduce(function (a, b) { return a.concat(b); }, [])
+        .filter(function (a) { return a.caminho === path.resolve(SPA, 'dist'); })[0].id;
+    x = await pedir('GET', '/__testin/tela/' + distId, comToken);
+    conferir(x.status === 302 && x.headers.location === '/', 'abrir a aplicação web a põe na RAIZ do endereço, como no servidor dela', x.status + ' ' + x.headers.location);
+    x = await pedir('GET', '/', comToken);
+    var posWeb = x.corpo.indexOf('/__testin/plataforma/web.js');
+    conferir(x.status === 200 && posWeb > 0 && posWeb < x.corpo.indexOf('/assets/app-1.js') && /"caso":\d+/.test(x.corpo),
+        'a raiz serve a aplicação, com o ambiente web ANTES do primeiro script dela', x.corpo.substring(0, 300));
+    x = await pedir('GET', '/assets/app-1.js', comToken);
+    conferir(x.status === 200 && /__spa/.test(x.corpo), 'o /assets/... do build é achado (era a tela em branco)');
+    x = await pedir('GET', '/assets/app-1.js');
+    conferir(x.status === 401, 'os arquivos da aplicação na raiz também exigem o token');
+    x = await pedir('GET', '/dashboard/financeiro', { headers: { 'x-testin-token': token, Accept: 'text/html' } });
+    conferir(x.status === 200 && /Painel SPA/.test(x.corpo) && /web\.js/.test(x.corpo),
+        'rota da aplicação (/dashboard/financeiro) recebe a página principal: o roteador dela decide');
+    x = await pedir('GET', '/assets/nao-existe.js', comToken);
+    conferir(x.status === 404, 'arquivo que falta é 404 de verdade (não a página)');
+    x = await pedir('GET', '/%2e%2e/%2e%2e/app-cadastro/segredo.txt', comToken);
+    conferir(x.status !== 200 && !/nao pode sair/.test(x.corpo), 'na raiz, também não se sai da pasta da aplicação', x.status + ' ' + x.corpo);
+    x = await pedir('GET', '/__testin/tela/' + distId + '?pagina=' + encodeURIComponent('//site-malicioso.com/x'), comToken);
+    conferir(x.status === 302 && /^\/[^/\\]/.test(x.headers.location), '"?pagina=//outro-site" não vira redirecionamento para fora', x.headers.location);
+    x = await pedir('GET', '/?t=' + token);
+    conferir(x.status === 302 && /^\/__testin\//.test(x.headers.location), 'com a aplicação aberta, o endereço do terminal (com ?t=) ainda leva à interface');
+    await pedir('POST', '/__testin/pedido', { headers: { 'x-testin-token': token }, corpo: { nome: 'rest.v1.usuarios', metodo: 'get', url: 'https://abc.supabase.co/rest/v1/usuarios', filtros: [{ campo: 'id', valor: 'eq.5' }] } });
+    ped = await pedir('GET', '/__testin/api/pedidos', comToken);
+    conferir(JSON.parse(ped.corpo).dados.pedidos.some(function (p2) { return p2.via === 'rede' && p2.metodo === 'GET' && p2.nome === 'rest.v1.usuarios'; }),
+        'a chamada bloqueada pela aplicação web fica registrada para o resultado');
+    await pedir('GET', '/__testin/tela/' + idFluxo, comToken);
+    x = await pedir('GET', '/');
+    conferir(x.status === 302 && x.headers.location === '/__testin/', 'abrir uma tela de fluxo tira a aplicação web da raiz');
     srv.close();
 
     /* ====================================================================== */

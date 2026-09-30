@@ -226,15 +226,68 @@ function aplicacoesWeb(repo, jaAchadas) {
         var pasta = path.dirname(arq);
         var k = path.resolve(pasta).toLowerCase();
         if (dentroDeOutra.some(function (d) { return k === d || k.indexOf(d + path.sep) === 0; })) return;
-        achados.push({
+        var html = ler(arq);
+        var app = {
             id: idDe(pasta), tipo: 'web',
             nome: pasta === repo ? path.basename(repo) : path.basename(pasta),
-            titulo: tituloDoHtml(ler(arq)) || path.basename(pasta),
+            titulo: tituloDoHtml(html) || path.basename(pasta),
             caminho: path.resolve(pasta), rel: path.relative(repo, pasta).split(path.sep).join('/') || '.',
             principal: 'index.html'
-        });
+        };
+        avisarDoBuild(app, pasta, html);
+        achados.push(app);
     }, function (nome) { return nome === 'forms' || nome === 'wcm'; });
     return achados;
+}
+
+/* PROJETO COM BUILD (Vite, e parecidos). O index.html da FONTE aponta para
+   /src/main.jsx: so o servidor do Vite sabe transformar isso, servido como
+   arquivo a tela fica em branco. Ele aparece na lista, mas desligado, com o
+   caminho: gerar o build e testar a pasta dele. O build (dist/, build/)
+   mais velho que o codigo em src/ ganha um aviso - testar o build velho e
+   testar outra versao da aplicacao. */
+var FONTE_DE_BUILD = /<script\b[^>]*\bsrc=["']\/?src\/[^"']+\.(jsx|tsx|ts|vue|svelte)["']/i;
+
+function avisarDoBuild(app, pasta, html) {
+    if (FONTE_DE_BUILD.test(html || '')) {
+        var vite = usaVite(pasta);
+        app.testavel = false;
+        app.aviso = (vite ? 'Projeto Vite: e' : 'E') + 'ste index.html é o de desenvolvimento e só roda com o servidor ' +
+            (vite ? 'do Vite' : 'do projeto') + '. Gere o build (npm run build) e teste a pasta dele (dist).';
+        return;
+    }
+    if (!/^(dist|build)$/i.test(path.basename(pasta))) return;
+    var projeto = path.dirname(pasta);
+    if (!existe(path.join(projeto, 'package.json')) || !existe(path.join(projeto, 'src'))) return;
+    var doBuild = 0;
+    try { doBuild = fs.statSync(path.join(pasta, 'index.html')).mtimeMs; } catch (e) { return; }
+    var doCodigo = maisNovo(path.join(projeto, 'src'));
+    if (doCodigo > doBuild + 1000) {
+        app.aviso = 'O build é mais velho que o código em src/ (' + new Date(doCodigo).toLocaleDateString('pt-BR') +
+            '): rode npm run build antes de testar.';
+    }
+}
+
+function usaVite(pasta) {
+    if (['vite.config.js', 'vite.config.mjs', 'vite.config.cjs', 'vite.config.ts', 'vite.config.mts'].some(function (n) {
+        return existe(path.join(pasta, n));
+    })) return true;
+    return /"vite"\s*:/.test(ler(path.join(pasta, 'package.json')) || '');
+}
+
+/* O arquivo mais novo da pasta, com limite: src/ enorme nao trava a lista. */
+function maisNovo(pasta) {
+    var max = 0, vistos = 0;
+    (function andar(p, fundo) {
+        if (fundo > 8 || vistos > 5000) return;
+        listar(p).forEach(function (d) {
+            if (vistos++ > 5000 || IGNORAR[d.name]) return;
+            var c = path.join(p, d.name);
+            if (d.isDirectory()) return andar(c, fundo + 1);
+            try { max = Math.max(max, fs.statSync(c).mtimeMs); } catch (e) { /* sumiu */ }
+        });
+    }(pasta, 0));
+    return max;
 }
 
 function tituloDoHtml(html) {
