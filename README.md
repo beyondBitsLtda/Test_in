@@ -146,6 +146,7 @@ A tela consulta dados como faria no servidor: `DatasetFactory.getDataset`, o ser
 **Outros campos:**
 - **`atividade` / `destino`:** a etapa em que a tela abre e para onde o Enviar manda (o que `getValue("WKNumState")` e o `beforeSendValidate` recebem).
 - **`websocket`:** a tela que abre um WebSocket recebe um simulado, que responde conforme `respostas` (pela ação da mensagem) ou fica mudo.
+- **`parametros`:** só no módulo de página. Os pares viram a busca da URL com que a tela abre (`{ "modo": "demo" }` abre `...?modo=demo`), como uma página do portal acessada com parâmetro. Serve para ligar um modo da tela que depende da URL, por exemplo uma apresentação guiada (`{ "delpApresentacao": "meuId" }`). Chave com letras, números e `_ . -`; valor de até 200 caracteres. Use no caso que precisa dele: o do arquivo vale para todos os casos.
 
 ---
 

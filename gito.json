@@ -9,14 +9,29 @@
     "responsavel": "Brayan Rodrigues",
     "equipe": ""
   },
-  "versao": "1.3.0",
-  "atualizadoEm": "2026-09-29",
+  "versao": "1.4.0-issues_0.1.0.1",
+  "atualizadoEm": "2026-10-02",
   "compilacao": {
-    "numero": 4,
-    "data": "2026-09-29",
+    "numero": 5,
+    "data": "2026-10-02",
     "artefato": ""
   },
   "historico": [
+    {
+      "versao": "1.4.0-issues_0.1.0.1",
+      "data": "2026-10-02",
+      "branch": "Issues_0.1.0",
+      "tipo": "funcionalidade",
+      "resumo": "O módulo de página pode abrir com parâmetros na URL, definidos no script de teste: é o que deixa testar um modo da tela que depende da URL, como uma apresentação guiada.",
+      "itens": [
+        "Novo bloco simulacoes.parametros no script: os pares viram a busca da URL com que o módulo de página abre (ex.: ?delpApresentacao=gerenciamentoMaterial).",
+        "Vale por caso: o simulacoes do caso soma com o do arquivo, como as outras simulações; só chave com letras, números e _ . -, e valor de até 200 caracteres.",
+        "A lista de casos mostra os parâmetros da página junto dos dados simulados e do usuário.",
+        "O motor (web/motor.js) não mudou: continua idêntico ao do painel da plataforma, e o script com parametros segue rodando lá (o painel ignora o bloco simulacoes).",
+        "Conferido com a widget de Gerenciamento de Materiais: 7 casos aprovados, inclusive a apresentação guiada com os 26 passos; bateria rápida sem regressão."
+      ],
+      "issues": []
+    },
     {
       "versao": "1.3.0",
       "data": "2026-09-29",
@@ -96,6 +111,7 @@
         "Organizar as aplicações encontradas por pasta cadastrada e repositório, com busca, filtros por arquitetura e por script de teste, grupos recolhíveis e vista em cartões ou em lista.",
         "Executar os passos do script: abrir, preencher, selecionar, marcar, clicar, enviar, esperar e conferir (texto, campo, visível, oculto, bloqueado, alerta, console, fonte de dados e chamada).",
         "Simular as consultas de dados (DatasetFactory e o serviço REST de dados) pelas regras do bloco simulacoes do script, inclusive falhas, sem mudar o código da aplicação.",
+        "Abrir o módulo de página com parâmetros na URL (simulacoes.parametros), para testar o que a tela faz quando é acessada com eles.",
         "Emular a plataforma que a tela espera: bibliotecas (jQuery, jQuery UI, Mustache), biblioteca de componentes, folha de estilos, WebSocket, usuário, etapa do fluxo e os eventos de servidor da tela (displayFields, enableFields, validateForm) numa sandbox.",
         "Testar aplicações web modernas (React, Vite, SPA) pelo build: a aplicação abre na raiz do endereço, com as rotas dela, e as chamadas de rede (fetch, XMLHttpRequest, WebSocket) são respondidas pelas regras de simulacoes.http do script.",
         "Mostrar o andamento ao vivo, em tela cheia, em câmera lenta ou passo a passo.",

@@ -452,6 +452,11 @@
             simEl.appendChild(el('div', '', 'Rede liberada: ' + s.rede.permitir.join(', ')));
         }
         if (s.usuario && s.usuario.login) simEl.appendChild(el('div', '', 'Usuário: ' + s.usuario.login));
+        if (s.parametros && typeof s.parametros === 'object' && Object.keys(s.parametros).length) {
+            simEl.appendChild(el('div', '', 'Parâmetros da página: ' + Object.keys(s.parametros).map(function (k) {
+                return k + '=' + s.parametros[k];
+            }).join(', ')));
+        }
         if (s.atividade !== undefined) simEl.appendChild(el('div', '', 'Etapa ao abrir: ' + s.atividade + (s.destino !== undefined ? ' → envio para ' + s.destino : '')));
 
         a.casos.forEach(function (c, i) {
@@ -475,6 +480,18 @@
     }
 
     /* ================================================================ rodar */
+    /* simulacoes.parametros: a busca (?nome=valor) com que a tela do MODULO
+       abre - a pagina do portal com um parametro na URL (ex.: o que liga um
+       modo da tela). So texto simples: chave e valor viram parte da URL. */
+    function parametrosDaTela(app) {
+        var p = (estado.simCaso && estado.simCaso.parametros) || {};
+        if (app.tipo !== 'modulo' || typeof p !== 'object') return '';
+        var partes = Object.keys(p).filter(function (k) { return /^[A-Za-z0-9_.\-]{1,60}$/.test(k); }).map(function (k) {
+            return encodeURIComponent(k) + '=' + encodeURIComponent(String(p[k] == null ? '' : p[k]).slice(0, 200));
+        });
+        return partes.length ? '?' + partes.join('&') : '';
+    }
+
     function mesclarSimulacoes(base, doCaso) {
         var r = JSON.parse(JSON.stringify(base || {}));
         Object.keys(doCaso || {}).forEach(function (k) {
@@ -687,13 +704,14 @@
                    ponto faz as vezes da barra (relatorios.mensal ->
                    /relatorios/mensal). Arquivo .html abre como está. */
                 pagina: function (pg) {
-                    if (pg === '.' || app.tipo !== 'web') return '/__testin/tela/' + app.id;
+                    if (pg === '.' || app.tipo !== 'web') return '/__testin/tela/' + app.id + parametrosDaTela(app);
                     var rota = /\.html?$/i.test(pg) ? pg : pg.split('.').join('/');
                     return '/__testin/tela/' + app.id + '?pagina=' + encodeURIComponent(rota);
                 }
             },
             antesDoCaso: function (caso) {
                 var s = mesclarSimulacoes(simArquivo, porCodigo[caso.codigo] && porCodigo[caso.codigo].simulacoes);
+                estado.simCaso = s;
                 if (app.tipo === 'fluxo' && !s.fluxo) {
                     var abre = caso.passos[0];
                     if (abre && abre.processo) s.fluxo = abre.processo;
